@@ -2,19 +2,19 @@ import { createClient } from '@supabase/supabase-js'
 
 // Securely load environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseKey = process.env.SUPABASE_KEY
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY
 
 // Validate environment variables are present
 if (!supabaseUrl) {
   throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable')
 }
 
-if (!supabaseKey) {
-  throw new Error('Missing SUPABASE_KEY environment variable')
+if (!supabaseAnonKey) {
+  throw new Error('Missing SUPABASE_ANON_KEY environment variable')
 }
 
 // Create Supabase client with secure configuration
-const supabase = createClient(supabaseUrl, supabaseKey, {
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,

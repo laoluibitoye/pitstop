@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/react'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -19,6 +20,7 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased`}>
         <div className="min-h-screen bg-gradient-to-br from-primary-50 to-accent-blue-50 dark:from-dark-bg dark:to-primary-900">
           {children}
+          <Analytics />
         </div>
       </body>
     </html>

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { UserCheck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { userAnalytics, simpleTrack } from '@/lib/analytics'
 import toast from 'react-hot-toast'
 
 export function GuestModeButton({ className }: { className?: string }) {
@@ -15,6 +16,9 @@ export function GuestModeButton({ className }: { className?: string }) {
       // Generate a simple guest session ID
       const sessionId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
       
+      // Track guest mode start
+      userAnalytics.guestModeStarted(sessionId, 'landing_page')
+      
       // Store guest session in localStorage for now
       localStorage.setItem('guest_session', sessionId)
       
@@ -23,6 +27,8 @@ export function GuestModeButton({ className }: { className?: string }) {
       toast.success('Welcome to PitStop Guest Mode!')
     } catch (error) {
       toast.error('Failed to start guest mode')
+      // Track error
+      simpleTrack('guest_mode_error', { error: String(error), timestamp: new Date().toISOString() })
     } finally {
       setLoading(false)
     }
