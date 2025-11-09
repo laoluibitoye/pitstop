@@ -2,12 +2,12 @@
 
 import { useEffect, useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
-import { 
-  Users, 
-  Zap, 
-  Smartphone, 
-  CheckCircle, 
-  ArrowRight, 
+import {
+  Users,
+  Zap,
+  Smartphone,
+  CheckCircle,
+  ArrowRight,
   Star,
   TrendingUp,
   Clock,
@@ -19,6 +19,9 @@ import {
   Globe,
   Headphones
 } from 'lucide-react'
+import { SignInButton } from '@/components/auth/sign-in-button'
+import { SignUpButton } from '@/components/auth/sign-up-button'
+import { GuestModeButton } from '@/components/guest/guest-mode-button'
 
 const FadeInSection = ({ children, delay = 0 }: { children: React.ReactNode, delay?: number }) => {
   const ref = useRef(null)
@@ -193,12 +196,8 @@ export default function Home() {
               <a href="#why-choose" className="text-primary-600 hover:text-primary-900 dark:text-primary-300 dark:hover:text-dark-text transition-colors">Why Choose</a>
             </nav>
             <div className="flex space-x-4">
-              <button className="neo-button px-4 py-2 text-sm">
-                Sign In
-              </button>
-              <button className="neo-button px-4 py-2 text-sm bg-gradient-to-r from-green-500 to-green-600">
-                Start Free
-              </button>
+              <SignInButton />
+              <SignUpButton className="bg-gradient-to-r from-green-500 to-green-600" />
             </div>
           </div>
         </div>
@@ -233,13 +232,8 @@ export default function Home() {
 
             <FadeInSection delay={0.4}>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-                <button className="neo-button px-8 py-4 text-lg font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transform hover:scale-105">
-                  Start Managing Tasks Free
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </button>
-                <button className="neo-button px-8 py-4 text-lg font-semibold">
-                  Try Guest Mode
-                </button>
+                <SignUpButton className="neo-button px-8 py-4 text-lg font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transform hover:scale-105 flex items-center justify-center" />
+                <GuestModeButton className="neo-button px-8 py-4 text-lg font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transform hover:scale-105 flex items-center justify-center" />
               </div>
             </FadeInSection>
 
@@ -521,30 +515,26 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-gradient-primary">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <FadeInSection>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-              Ready to Transform Your Team's Productivity?
-            </h2>
-            <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-              Join thousands of teams already using PitStop to streamline their workflows and boost collaboration.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="px-8 py-4 bg-white text-blue-600 font-semibold rounded-xl hover:bg-blue-50 transition-colors transform hover:scale-105">
-                Start Free Today
-                <ArrowRight className="ml-2 h-5 w-5 inline" />
-              </button>
-              <button className="px-8 py-4 border-2 border-white text-white font-semibold rounded-xl hover:bg-white hover:text-blue-600 transition-colors">
-                View Demo
-              </button>
-            </div>
-            <p className="text-blue-100 text-sm mt-4">
-              No credit card required • Setup in 30 seconds • Free forever
-            </p>
-          </FadeInSection>
-        </div>
-      </section>
+            <section className="py-24 bg-blue">
+              <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <FadeInSection>
+                  <div className="bg-white rounded-2xl shadow-lg p-12 border border-primary-100">
+                    <h2 className="text-4xl md:text-5xl font-bold text-primary-900 mb-6">
+                      Ready to Transform Your Team's Productivity?
+                    </h2>
+                    <p className="text-xl text-primary-600 mb-8 max-w-2xl mx-auto">
+                      Join thousands of teams already using PitStop to streamline their workflows and boost collaboration.
+                    </p>
+                    <div className="flex justify-center">
+                      <SignUpButton className="px-8 py-4 text-lg font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white transform hover:scale-105 flex items-center justify-center rounded-xl transition-all duration-150 active:scale-95 shadow-md" />
+                    </div>
+                    <p className="text-primary-500 text-sm mt-4">
+                      No credit card required • Setup in 30 seconds • Free forever
+                    </p>
+                  </div>
+                </FadeInSection>
+              </div>
+            </section>
 
       {/* Footer */}
       <footer className="bg-primary-900 dark:bg-dark-bg text-white py-16">

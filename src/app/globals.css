@@ -45,10 +45,10 @@
 
   /* Neomorphism Button */
   .neo-button {
-    @apply rounded-xl bg-gradient-primary text-white font-semibold 
+    @apply rounded-xl bg-gradient-primary text-white font-semibold
            shadow-neomorphism active:shadow-inner-neomorphism
            transform transition-all duration-150 active:scale-95
-           hover:shadow-lg hover:scale-105;
+           hover:scale-105;
   }
 
   .dark .neo-button {
