@@ -49,6 +49,50 @@ export function DashboardContent() {
     loadTasks()
   }, [user, authLoading, isGuestMode])
 
+  // Auto-update overdue tasks
+  useEffect(() => {
+    if (tasks.length === 0) return
+
+    const checkOverdueTasks = () => {
+      const now = new Date()
+      const updatedTasks = tasks.map(task => {
+        if (
+          task.status === 'ongoing' &&
+          task.due_date &&
+          new Date(task.due_date) < now
+        ) {
+          return {
+            ...task,
+            status: 'delayed' as const,
+            updated_at: new Date().toISOString()
+          }
+        }
+        return task
+      })
+
+      const hasChanges = updatedTasks.some((task, index) =>
+        task.status !== tasks[index].status
+      )
+
+      if (hasChanges) {
+        setTasks(updatedTasks)
+        
+        // Save to localStorage if guest mode
+        if (isGuestMode) {
+          localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+        }
+      }
+    }
+
+    // Check immediately
+    checkOverdueTasks()
+
+    // Check every minute
+    const interval = setInterval(checkOverdueTasks, 60000)
+
+    return () => clearInterval(interval)
+  }, [tasks, isGuestMode])
+
   const loadTasks = async () => {
     setLoading(true)
     try {

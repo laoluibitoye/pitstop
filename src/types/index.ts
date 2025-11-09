@@ -28,6 +28,18 @@ export interface Tag {
   updated_at: string
 }
 
+export interface SubTask {
+  id: string
+  task_id: string
+  title: string
+  description?: string
+  status: 'ongoing' | 'completed' | 'cancelled'
+  position: number
+  created_at: string
+  updated_at: string
+  completed_at?: string
+}
+
 export interface Task {
   id: string
   title: string
@@ -49,6 +61,7 @@ export interface Task {
   tags?: Tag[]
   comments?: TaskComment[]
   files?: TaskFile[]
+  sub_tasks?: SubTask[]
   progress?: number // Calculated field for sub-tasks
 }
 
@@ -163,6 +176,44 @@ export interface CreateTagData {
 
 export interface CreateGuestSessionData {
   email?: string
+}
+
+export interface CreateSubTaskData {
+  task_id: string
+  title: string
+  description?: string
+}
+
+export interface UpdateSubTaskData {
+  title?: string
+  description?: string
+  status?: SubTask['status']
+  position?: number
+}
+
+export interface TimeExtension {
+  id: string
+  task_id: string
+  user_id: string
+  original_due_date: string
+  new_due_date: string
+  reason: string
+  created_at: string
+  user?: Profile
+}
+
+export interface CreateTimeExtensionData {
+  task_id: string
+  new_due_date: string
+  reason: string
+}
+
+export interface RoleBasedAccess {
+  isAdmin: boolean
+  canManageUsers: boolean
+  canModerateTasks: boolean
+  canViewAnalytics: boolean
+  canManageSettings: boolean
 }
 
 // API Response types
