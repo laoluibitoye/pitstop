@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  body {
+    @apply bg-primary-50 text-primary-900 transition-colors duration-200;
+  }
+
+  .dark body {
+    @apply bg-dark-bg text-dark-text;
+  }
+}
+
+@layer components {
+  /* Neomorphism Components */
+  .neo-card {
+    @apply rounded-2xl shadow-neomorphism transition-all duration-200;
+  }
+
+  .neo-card:hover {
+    @apply shadow-inner-neomorphism;
+  }
+
+  .dark .neo-card {
+    @apply shadow-neomorphism-dark;
+  }
+
+  .dark .neo-card:hover {
+    @apply shadow-inner-neomorphism-dark;
+  }
+
+  /* Glassmorphism Components */
+  .glass-card {
+    @apply bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl shadow-glass;
+  }
+
+  .dark .glass-card {
+    @apply bg-black/20 border-white/10;
+  }
+
+  /* Neomorphism Button */
+  .neo-button {
+    @apply rounded-xl bg-gradient-primary text-white font-semibold 
+           shadow-neomorphism active:shadow-inner-neomorphism
+           transform transition-all duration-150 active:scale-95
+           hover:shadow-lg hover:scale-105;
+  }
+
+  .dark .neo-button {
+    @apply shadow-neomorphism-dark active:shadow-inner-neomorphism-dark;
+  }
+
+  /* Form Inputs */
+  .neo-input {
+    @apply rounded-xl bg-primary-50 border border-primary-200 
+           shadow-inner-neomorphism px-4 py-3 text-primary-900
+           focus:outline-none focus:ring-2 focus:ring-accent-blue-500
+           transition-all duration-200;
+  }
+
+  .neo-input:focus {
+    @apply shadow-inner-neomorphism;
+  }
+
+  .dark .neo-input {
+    @apply bg-dark-card border-dark-border text-dark-text;
+  }
+
+  .dark .neo-input:focus {
+    @apply shadow-inner-neomorphism-dark;
+  }
+
+  /* Loading Animation */
+  .loading-pulse {
+    @apply animate-pulse bg-gradient-to-r from-primary-200 to-accent-blue-200 
+           bg-[length:200%_100%] animate-[loading_1.5s_ease-in-out_infinite];
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-primary bg-clip-text text-transparent;
+  }
+
+  .card-hover {
+    @apply transform transition-all duration-300 hover:scale-105 hover:shadow-2xl;
+  }
+
+  .smooth-transition {
+    @apply transition-all duration-300 ease-in-out;
+  }
+}
+
+/* Custom Animations */
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
