@@ -1,16 +1,15 @@
 'use client'
 
-import { Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { DashboardContent } from '@/components/dashboard/dashboard-content'
 
 export default function Dashboard() {
+  const searchParams = useSearchParams()
+  const isGuestMode = searchParams.get('mode') === 'guest'
+  
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="loading-pulse h-8 w-32 rounded"></div>
-      </div>
-    }>
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-blue-50 dark:from-dark-bg dark:via-primary-900 dark:to-dark-bg">
       <DashboardContent />
-    </Suspense>
+    </div>
   )
 }

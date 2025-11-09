@@ -40,6 +40,7 @@ export function DashboardContent() {
   const isGuestMode = searchParams.get('mode') === 'guest'
 
   useEffect(() => {
+    // Only redirect if not in guest mode and no user
     if (!authLoading && !user && !isGuestMode) {
       router.push('/')
       return

@@ -50,43 +50,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userRole, setUserRole] = useState<'user' | 'admin' | null>(null)
   
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-  const supabase = createClient(supabaseUrl, supabaseAnonKey)
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || ''
+  
+  // Add console logs to debug environment variables
+  console.log('Supabase URL:', supabaseUrl)
+  console.log('Supabase Key exists:', !!supabaseAnonKey)
+  
+  // Create Supabase client with error handling
+  const supabase = supabaseUrl && supabaseAnonKey
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : null
 
   useEffect(() => {
-    const getInitialSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession()
-      if (error) {
-        console.error('Error getting session:', error)
-      } else {
-        setSession(session)
-        setUser(session?.user ?? null)
-        if (session?.user) {
-          await fetchUserRole(session.user.id)
-        }
-      }
+    // Always set loading to false after 2 seconds as fallback
+    const loadingTimeout = setTimeout(() => {
+      console.log('Auth loading timeout - setting loading to false')
       setLoading(false)
-    }
+    }, 2000)
 
-    getInitialSession()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event: string, session: Session | null) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        if (session?.user) {
-          await fetchUserRole(session.user.id)
-        } else {
-          setUserRole(null)
+    const initializeAuth = async () => {
+      try {
+        if (!supabase) {
+          console.log('No Supabase client - proceeding with guest mode')
+          setLoading(false)
+          return
         }
+
+        const { data: { session }, error } = await supabase.auth.getSession()
+        if (error) {
+          console.error('Error getting session:', error)
+        } else {
+          setSession(session)
+          setUser(session?.user ?? null)
+          if (session?.user) {
+            await fetchUserRole(session.user.id)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to get session:', error)
+      } finally {
+        clearTimeout(loadingTimeout)
         setLoading(false)
       }
-    )
+    }
+
+    initializeAuth()
+
+    let subscription: any = null
+    if (supabase) {
+      const { data } = supabase.auth.onAuthStateChange(
+        async (_event: string, session: Session | null) => {
+          setSession(session)
+          setUser(session?.user ?? null)
+          if (session?.user) {
+            await fetchUserRole(session.user.id)
+          } else {
+            setUserRole(null)
+          }
+          setLoading(false)
+        }
+      )
+      subscription = data.subscription
+    }
 
     return () => {
-      subscription?.unsubscribe()
+      clearTimeout(loadingTimeout)
+      if (subscription) {
+        subscription.unsubscribe()
+      }
     }
-  }, [supabase])
+  }, [])
 
   const fetchUserRole = async (userId: string) => {
     try {
@@ -114,16 +147,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signIn = async (email: string, password: string) => {
+    if (!supabase) throw new Error('Supabase client not initialized')
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
   }
 
   const signUp = async (email: string, password: string) => {
+    if (!supabase) throw new Error('Supabase client not initialized')
     const { error } = await supabase.auth.signUp({ email, password })
     if (error) throw error
   }
 
   const signOut = async () => {
+    if (!supabase) throw new Error('Supabase client not initialized')
     const { error } = await supabase.auth.signOut()
     if (error) throw error
     setUserRole(null)
