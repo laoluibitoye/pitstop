@@ -38,7 +38,7 @@ export function GuestModeButton({ className }: { className?: string }) {
         <UserCheck className="h-4 w-4" />
         <span>{loading ? 'Loading...' : 'Try Guest Mode'}</span>
       </div>
-      <div className="text-xs mt-1 opacity-75">1 task • 3 comments</div>
+      <div className="text-xs mt-1.5 opacity-75"> 1 task • 3 comments</div>
     </button>
   )
 }
