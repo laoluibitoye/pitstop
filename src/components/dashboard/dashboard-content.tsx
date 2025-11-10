@@ -58,8 +58,13 @@ export function DashboardContent() {
   const isGuestMode = searchParams.get('mode') === 'guest'
 
   useEffect(() => {
-    if (isGuestMode && typeof window !== 'undefined') {
-      setGuestName(localStorage.getItem('guest_name'))
+    // Only access localStorage on client side
+    if (isGuestMode && typeof window !== 'undefined' && window.localStorage) {
+      try {
+        setGuestName(localStorage.getItem('guest_name'))
+      } catch (error) {
+        console.warn('localStorage not available:', error)
+      }
     }
   }, [isGuestMode])
 

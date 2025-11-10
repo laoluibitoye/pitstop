@@ -1,6 +1,9 @@
 import { Suspense } from 'react'
 import { DashboardContent } from '@/components/dashboard/dashboard-content'
 
+// Force dynamic rendering to prevent SSG issues with localStorage
+export const dynamic = 'force-dynamic'
+
 export default function Dashboard() {
   return (
     <Suspense fallback={
