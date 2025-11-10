@@ -86,6 +86,30 @@ export function DashboardContentWithSuspense({
     loadTasks()
   }, [user, authLoading, isGuestMode])
 
+  // Filter tasks based on search query and filters
+  const filteredTasks = tasks.filter(task => {
+    // Text search
+    const matchesSearch = !searchQuery ||
+      task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    // Status filter
+    const matchesStatus = filters.status.length === 0 || filters.status.includes(task.status)
+    
+    // Priority filter
+    const matchesPriority = filters.priority.length === 0 || filters.priority.includes(task.priority)
+    
+    return matchesSearch && matchesStatus && matchesPriority
+  })
+
+  // Update tasks when filters change
+  useEffect(() => {
+    if (searchQuery || filters.status.length > 0 || filters.priority.length > 0) {
+      // Don't reload from storage, just filter existing tasks
+      // This keeps the state in sync without additional API calls
+    }
+  }, [searchQuery, filters, tasks])
+
   // Auto-update overdue tasks
   useEffect(() => {
     if (tasks.length === 0) return
@@ -135,7 +159,43 @@ export function DashboardContentWithSuspense({
     try {
       if (isGuestMode) {
         // Load guest tasks from localStorage
-        const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
+        let guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
+        
+        // Add sample tasks if no tasks exist
+        if (guestTasks.length === 0 && typeof window !== 'undefined') {
+          const sampleTasks = [
+            {
+              id: 'sample_1',
+              title: 'Welcome to PitStop!',
+              description: 'This is your first task. You can edit, complete, or delete it.',
+              status: 'ongoing',
+              priority: 'medium',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+            {
+              id: 'sample_2',
+              title: 'Try creating a new task',
+              description: 'Click the "Create New Task" button to add your own tasks.',
+              status: 'completed',
+              priority: 'low',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+            {
+              id: 'sample_3',
+              title: 'Explore the features',
+              description: 'Try the search, filters, and different view modes.',
+              status: 'ongoing',
+              priority: 'high',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }
+          ]
+          localStorage.setItem('guest_tasks', JSON.stringify(sampleTasks))
+          guestTasks = sampleTasks
+        }
+        
         setTasks(guestTasks)
       } else {
         // Load tasks from Supabase
@@ -252,7 +312,7 @@ export function DashboardContentWithSuspense({
                       {isGuestMode ? `Welcome, ${guestName}!` : 'Dashboard'}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
+                      {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
                       {isGuestMode && ' • Guest Mode • Limited Access'}
                     </p>
                   </div>
@@ -314,7 +374,7 @@ export function DashboardContentWithSuspense({
                     {isGuestMode ? `Welcome, ${guestName}!` : 'Dashboard'}
                   </h1>
                   <p className="text-sm text-muted-foreground">
-                    {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
+                    {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
                     {isGuestMode && ' • Guest Mode • Limited Access'}
                   </p>
                 </div>
@@ -332,6 +392,14 @@ export function DashboardContentWithSuspense({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="input h-9 w-64 pl-9"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
 
               {/* View Toggle */}
@@ -400,7 +468,7 @@ export function DashboardContentWithSuspense({
 
         {/* Main Dashboard Content */}
         <main className="flex-1 p-6">
-          <div className="max-w-7xl mx-auto space-y-6">
+          <div className="w-full space-y-6">
             {/* Quick Actions */}
             <div className="flex flex-col sm:flex-row gap-4">
               <motion.button
@@ -408,14 +476,22 @@ export function DashboardContentWithSuspense({
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setShowCreateModal(true)}
                 className="btn-primary"
+                disabled={isGuestMode}
+                title={isGuestMode ? "Sign up to create unlimited tasks" : "Create a new task"}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create New Task
               </motion.button>
+              {isGuestMode && (
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Bell className="h-4 w-4 mr-1" />
+                  Guest Mode: Limited to sample tasks only
+                </div>
+              )}
             </div>
 
             {/* Dashboard Stats */}
-            <DashboardStats tasks={tasks} />
+            <DashboardStats tasks={filteredTasks} />
 
             {/* Content Area */}
             <div className="grid gap-6 lg:grid-cols-4">
@@ -436,9 +512,28 @@ export function DashboardContentWithSuspense({
                       <div key={i} className="card p-6 loading-pulse h-24"></div>
                     ))}
                   </div>
+                ) : filteredTasks.length === 0 && (searchQuery || filters.status.length > 0 || filters.priority.length > 0) ? (
+                  <div className="text-left py-12">
+                    <div className="card p-8">
+                      <Filter className="h-16 w-16 text-gray-400 mb-4" />
+                      <h3 className="text-lg font-semibold text-foreground mb-2">No tasks match your criteria</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Try adjusting your search or filters to find what you're looking for.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setSearchQuery('')
+                          setFilters({ status: [], priority: [], category_id: '' })
+                        }}
+                        className="btn-secondary"
+                      >
+                        Clear All Filters
+                      </button>
+                    </div>
+                  </div>
                 ) : (
                   <TaskList
-                    tasks={tasks}
+                    tasks={filteredTasks}
                     onUpdateTask={updateTask}
                     onDeleteTask={deleteTask}
                     viewMode={viewMode}
@@ -452,8 +547,8 @@ export function DashboardContentWithSuspense({
 
         {/* Footer */}
         <footer className="border-t border-border bg-muted/20 py-6 mt-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+          <div className="w-full px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-sm">P</span>
@@ -464,7 +559,7 @@ export function DashboardContentWithSuspense({
                 </span>
               </div>
               
-              <div className="text-sm text-muted-foreground text-center">
+              <div className="text-sm text-muted-foreground">
                 © 2025 PitStop. All rights reserved.
               </div>
             </div>
