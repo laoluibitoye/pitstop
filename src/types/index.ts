@@ -54,6 +54,11 @@ export interface Task {
   position: number
   created_at: string
   updated_at: string
+  // Privacy & Collaboration
+  visibility: 'public' | 'private'
+  permissions?: TaskPermission[]
+  share_links?: ShareLink[]
+  access_log?: TaskAccess[]
   // Relations
   category?: Category
   assigned_user?: Profile
@@ -63,6 +68,48 @@ export interface Task {
   files?: TaskFile[]
   sub_tasks?: SubTask[]
   progress?: number // Calculated field for sub-tasks
+}
+
+export interface TaskPermission {
+  id: string
+  task_id: string
+  user_id: string
+  permission_type: 'view' | 'comment' | 'edit' | 'admin'
+  granted_by: string
+  granted_at: string
+  expires_at?: string
+  // Relations
+  user?: Profile
+  granted_by_user?: Profile
+}
+
+export interface ShareLink {
+  id: string
+  task_id: string
+  token: string
+  name?: string
+  permission_type: 'view' | 'comment' | 'edit'
+  is_active: boolean
+  max_uses?: number
+  current_uses: number
+  expires_at?: string
+  created_by: string
+  created_at: string
+  // Relations
+  created_by_user?: Profile
+}
+
+export interface TaskAccess {
+  id: string
+  task_id: string
+  user_id?: string
+  session_id?: string
+  access_type: 'view' | 'comment' | 'edit' | 'share'
+  ip_address?: string
+  user_agent?: string
+  created_at: string
+  // Relations
+  user?: Profile
 }
 
 export interface TaskComment {
@@ -248,5 +295,42 @@ export interface Notification {
   title: string
   message: string
   duration?: number
+  created_at: string
+}
+
+// Enhanced types for Phase 5 & 6
+export interface TaskMetrics {
+  commentCount: number
+  participantCount: number
+  subTaskProgress: {
+    completed: number
+    total: number
+  }
+  activeParticipants: Participant[]
+  lastActivity: string
+}
+
+export interface Participant {
+  id: string
+  user_id: string
+  role: 'assignee' | 'commenter' | 'editor' | 'viewer'
+  isActive: boolean
+  lastSeen: string
+  user?: Profile
+}
+
+export interface TaskWithMetrics extends Task {
+  metrics: TaskMetrics
+}
+
+export interface ViewModePreferences {
+  mode: 'grid' | 'list'
+  updatedAt: string
+}
+
+export interface CommentPreview {
+  id: string
+  content: string
+  user: Profile
   created_at: string
 }

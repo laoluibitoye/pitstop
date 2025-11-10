@@ -23,6 +23,7 @@ import {
 import { useAuth } from '@/components/providers/auth-provider'
 import { useTheme } from 'next-themes'
 import { TaskList } from '@/components/tasks/task-list'
+import { EnhancedTaskList } from '@/components/tasks/enhanced-task-list'
 import { TaskFilters } from '@/components/tasks/task-filters'
 import { CreateTaskModal } from '@/components/tasks/create-task-modal'
 import { DashboardStats } from '@/components/dashboard/dashboard-stats'
@@ -170,8 +171,11 @@ export function DashboardContentWithSuspense({
               description: 'This is your first task. You can edit, complete, or delete it.',
               status: 'ongoing',
               priority: 'medium',
+              visibility: 'public',
+              created_by: 'guest',
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
+              position: 0,
             },
             {
               id: 'sample_2',
@@ -179,8 +183,11 @@ export function DashboardContentWithSuspense({
               description: 'Click the "Create New Task" button to add your own tasks.',
               status: 'completed',
               priority: 'low',
+              visibility: 'private',
+              created_by: 'guest',
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
+              position: 1,
             },
             {
               id: 'sample_3',
@@ -188,8 +195,11 @@ export function DashboardContentWithSuspense({
               description: 'Try the search, filters, and different view modes.',
               status: 'ongoing',
               priority: 'high',
+              visibility: 'public',
+              created_by: 'guest',
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
+              position: 2,
             }
           ]
           localStorage.setItem('guest_tasks', JSON.stringify(sampleTasks))
@@ -532,12 +542,12 @@ export function DashboardContentWithSuspense({
                     </div>
                   </div>
                 ) : (
-                  <TaskList
+                  <EnhancedTaskList
                     tasks={filteredTasks}
                     onUpdateTask={updateTask}
                     onDeleteTask={deleteTask}
-                    viewMode={viewMode}
                     searchQuery={searchQuery}
+                    isGuestMode={isGuestMode}
                   />
                 )}
               </div>
