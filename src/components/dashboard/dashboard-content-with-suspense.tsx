@@ -17,7 +17,8 @@ import {
   Moon,
   Sun,
   Menu,
-  X
+  X,
+  ArrowLeft
 } from 'lucide-react'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useTheme } from 'next-themes'
@@ -37,14 +38,20 @@ interface TaskFilters {
   category_id: string
 }
 
-export function DashboardContent() {
+export function DashboardContentWithSuspense({
+  initialGuestName = null,
+  initialIsGuestMode = false
+}: {
+  initialGuestName?: string | null,
+  initialIsGuestMode?: boolean
+} = {}) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [searchQuery, setSearchQuery] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [guestName, setGuestName] = useState<string | null>(null)
+  const [guestName, setGuestName] = useState<string | null>(initialGuestName)
   const [filters, setFilters] = useState<TaskFilters>({
     status: [],
     priority: [],
@@ -55,7 +62,7 @@ export function DashboardContent() {
   const { theme, setTheme } = useTheme()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const isGuestMode = searchParams.get('mode') === 'guest'
+  const isGuestMode = searchParams.get('mode') === 'guest' || initialIsGuestMode
 
   useEffect(() => {
     // Only access localStorage on client side
@@ -198,7 +205,15 @@ export function DashboardContent() {
   }
 
   const handleGoHome = () => {
-    router.push('/')
+    // Clear any guest mode parameters and go to landing page
+    if (isGuestMode) {
+      // Clear guest session data
+      localStorage.removeItem('guest_session')
+      // Navigate to landing page
+      router.push('/')
+    } else {
+      router.push('/')
+    }
   }
 
   const toggleTheme = () => {
@@ -280,6 +295,16 @@ export function DashboardContent() {
               >
                 <Menu className="h-4 w-4" />
               </button>
+              
+              {/* Back to Home Button */}
+              <button
+                onClick={handleGoHome}
+                className="p-1 rounded-md hover:bg-accent flex items-center mr-2"
+                title="Back to Home"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+              
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-sm">P</span>
@@ -374,7 +399,7 @@ export function DashboardContent() {
         </header>
 
         {/* Main Dashboard Content */}
-        <main className="flex-1 p-6 lg:pl-72">
+        <main className="flex-1 p-6">
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Quick Actions */}
             <div className="flex flex-col sm:flex-row gap-4">
