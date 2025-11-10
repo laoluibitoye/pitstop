@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { DashboardClient } from '@/components/dashboard/dashboard-client'
+import { DashboardContent } from '@/components/dashboard/dashboard-content'
 
 export default function Dashboard() {
   return (
@@ -8,7 +8,7 @@ export default function Dashboard() {
         <div className="loading-pulse h-8 w-32 rounded"></div>
       </div>
     }>
-      <DashboardClient />
+      <DashboardContent />
     </Suspense>
   )
 }

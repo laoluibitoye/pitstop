@@ -1,17 +1,32 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Plus, Filter, Search, Grid, List } from 'lucide-react'
+import {
+  Plus,
+  Home,
+  Settings,
+  Search,
+  Filter,
+  Grid,
+  List,
+  Bell,
+  User,
+  LogOut,
+  Moon,
+  Sun,
+  Menu,
+  X
+} from 'lucide-react'
 import { useAuth } from '@/components/providers/auth-provider'
-import { ThemeToggle } from '@/components/theme-toggle'
+import { useTheme } from 'next-themes'
 import { TaskList } from '@/components/tasks/task-list'
 import { TaskFilters } from '@/components/tasks/task-filters'
 import { CreateTaskModal } from '@/components/tasks/create-task-modal'
-import { DashboardHeader } from '@/components/dashboard/dashboard-header'
 import { DashboardStats } from '@/components/dashboard/dashboard-stats'
 import { Task } from '@/types'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 type TaskStatus = 'ongoing' | 'completed' | 'delayed' | 'cancelled'
 type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
@@ -28,16 +43,25 @@ export function DashboardContent() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [searchQuery, setSearchQuery] = useState('')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [guestName, setGuestName] = useState<string | null>(null)
   const [filters, setFilters] = useState<TaskFilters>({
     status: [],
     priority: [],
     category_id: '',
   })
 
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, signOut } = useAuth()
+  const { theme, setTheme } = useTheme()
   const router = useRouter()
   const searchParams = useSearchParams()
   const isGuestMode = searchParams.get('mode') === 'guest'
+
+  useEffect(() => {
+    if (isGuestMode && typeof window !== 'undefined') {
+      setGuestName(localStorage.getItem('guest_name'))
+    }
+  }, [isGuestMode])
 
   useEffect(() => {
     // Only redirect if not in guest mode and no user
@@ -163,90 +187,253 @@ export function DashboardContent() {
     }
   }
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="loading-pulse h-8 w-32 rounded"></div>
-      </div>
-    )
+  const handleLogout = async () => {
+    await signOut()
+    router.push('/')
+  }
+
+  const handleGoHome = () => {
+    router.push('/')
+  }
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark')
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-blue-50 dark:from-dark-bg dark:via-primary-900 dark:to-dark-bg">
-      {/* Header */}
-      <header className="neo-card m-4 p-4 bg-white/50 dark:bg-dark-card/50">
-        <div className="flex justify-between items-center">
-          <DashboardHeader
-            isGuestMode={isGuestMode}
-            user={user}
-            taskCount={tasks.length}
-          />
-          <div className="flex items-center space-x-4">
-            <ThemeToggle />
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-accent-blue-500 text-white' : 'bg-primary-200 dark:bg-primary-700'}`}
-              >
-                <List className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-accent-blue-500 text-white' : 'bg-primary-200 dark:bg-primary-700'}`}
-              >
-                <Grid className="h-4 w-4" />
-              </button>
-            </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="neo-button px-4 py-2 flex items-center space-x-2"
+    <div className="min-h-screen bg-background">
+      {/* Modern Sidebar */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: -256 }}
+              animate={{ x: 0 }}
+              exit={{ x: -256 }}
+              className="fixed left-0 top-0 z-50 h-full w-64 border-r border-border bg-card"
             >
-              <Plus className="h-4 w-4" />
-              <span>New Task</span>
-            </button>
+              <div className="flex h-16 items-center justify-between border-b border-border px-6">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">P</span>
+                  </div>
+                  <span className="text-lg font-semibold">PitStop</span>
+                </div>
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="p-2 hover:bg-accent rounded-lg lg:hidden"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <nav className="p-4 space-y-2">
+                <button onClick={handleGoHome} className="nav-link w-full justify-start">
+                  <Home className="h-4 w-4" />
+                  <span>Home</span>
+                </button>
+                <button className="nav-link w-full justify-start active">
+                  <Grid className="h-4 w-4" />
+                  <span>Dashboard</span>
+                </button>
+                <button className="nav-link w-full justify-start">
+                  <Settings className="h-4 w-4" />
+                  <span>Settings</span>
+                </button>
+              </nav>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content Area */}
+      <div className="lg:pl-64">
+        {/* Modern Top Header */}
+        <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
+          <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="p-2 hover:bg-accent rounded-lg lg:hidden"
+              >
+                <Menu className="h-4 w-4" />
+              </button>
+              
+              {/* Logo in header */}
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">P</span>
+                </div>
+                <div>
+                  <h1 className="text-xl font-semibold text-foreground">
+                    {isGuestMode ? `Welcome, ${guestName}!` : 'Dashboard'}
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
+                    {isGuestMode && ' • Guest Mode • Limited Access'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              {/* Search */}
+              <div className="relative hidden sm:block">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search tasks..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="input h-9 w-64 pl-9"
+                />
+              </div>
+
+              {/* View Toggle */}
+              <div className="flex items-center border border-border rounded-lg">
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 ${viewMode === 'list' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <List className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 ${viewMode === 'grid' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <Grid className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className="p-2 hover:bg-accent rounded-lg"
+                title="Toggle theme"
+              >
+                {theme === 'dark' ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+              </button>
+
+              {/* User Menu */}
+              <div className="flex items-center space-x-2">
+                {isGuestMode ? (
+                  <button
+                    onClick={() => router.push('/auth/signin')}
+                    className="btn-primary"
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    Sign In
+                  </button>
+                ) : user ? (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-muted-foreground">
+                      {user.user_metadata?.full_name || user.email}
+                    </span>
+                    <button
+                      onClick={handleLogout}
+                      className="btn-ghost"
+                    >
+                      <LogOut className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => router.push('/auth/signin')}
+                    className="btn-ghost"
+                  >
+                    <User className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <div className="flex flex-1">
-        {/* Sidebar */}
-        <aside className="w-64 p-4">
-          <TaskFilters
-            filters={filters}
-            onFiltersChange={setFilters}
-            onSearch={setSearchQuery}
-          />
-        </aside>
+        {/* Main Dashboard Content */}
+        <main className="flex-1 p-6 lg:pl-72">
+          <div className="max-w-7xl mx-auto space-y-6">
+            {/* Quick Actions */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowCreateModal(true)}
+                className="btn-primary"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create New Task
+              </motion.button>
+            </div>
 
-        {/* Main Content */}
-        <main className="flex-1 p-4">
-          <div className="space-y-6">
-            {/* Stats */}
+            {/* Dashboard Stats */}
             <DashboardStats tasks={tasks} />
 
-            {/* Task List */}
-            <div className="space-y-4">
-              {loading ? (
-                <div className="space-y-4">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="neo-card p-6 loading-pulse h-24"></div>
-                  ))}
-                </div>
-              ) : (
-                <TaskList
-                  tasks={tasks}
-                  onUpdateTask={updateTask}
-                  onDeleteTask={deleteTask}
-                  viewMode={viewMode}
-                  searchQuery={searchQuery}
+            {/* Content Area */}
+            <div className="grid gap-6 lg:grid-cols-4">
+              {/* Sidebar Filters */}
+              <div className="lg:col-span-1">
+                <TaskFilters
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                  onSearch={setSearchQuery}
                 />
-              )}
+              </div>
+
+              {/* Task List */}
+              <div className="lg:col-span-3">
+                {loading ? (
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="card p-6 loading-pulse h-24"></div>
+                    ))}
+                  </div>
+                ) : (
+                  <TaskList
+                    tasks={tasks}
+                    onUpdateTask={updateTask}
+                    onDeleteTask={deleteTask}
+                    viewMode={viewMode}
+                    searchQuery={searchQuery}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </main>
+
+        {/* Footer */}
+        <footer className="border-t border-border bg-muted/20 py-6 mt-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">P</span>
+                </div>
+                <span className="text-lg font-semibold">PitStop</span>
+                <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                  100% FREE
+                </span>
+              </div>
+              
+              <div className="text-sm text-muted-foreground text-center">
+                © 2025 PitStop. All rights reserved.
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
 
-      {/* Modals */}
+      {/* Create Task Modal */}
       {showCreateModal && (
         <CreateTaskModal
           onClose={() => setShowCreateModal(false)}
