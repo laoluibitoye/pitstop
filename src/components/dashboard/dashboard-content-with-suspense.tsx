@@ -344,7 +344,7 @@ export function DashboardContentWithSuspense({
       </AnimatePresence>
 
       {/* Main Content Area */}
-      <div className="flex flex-col flex-1 lg:pl-64">
+      <div className="flex flex-col flex-1">
         {/* Modern Top Header */}
         <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
@@ -467,7 +467,7 @@ export function DashboardContentWithSuspense({
         </header>
 
         {/* Main Dashboard Content */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6">
           <div className="w-full space-y-6">
             {/* Quick Actions */}
             <div className="flex flex-col sm:flex-row gap-4">
