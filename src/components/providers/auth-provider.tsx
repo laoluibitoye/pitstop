@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import { RoleBasedAccess } from '@/types'
 
 interface AuthContextType {
@@ -56,10 +56,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   console.log('Supabase URL:', supabaseUrl)
   console.log('Supabase Key exists:', !!supabaseAnonKey)
   
-  // Create Supabase client with error handling
-  const supabase = supabaseUrl && supabaseAnonKey
-    ? createClient(supabaseUrl, supabaseAnonKey)
-    : null
+  // Use the centralized Supabase client from lib/supabase.ts
+  // The client will throw an error if environment variables are missing
+  // so we can proceed with guest mode if needed
 
   useEffect(() => {
     // Always set loading to false after 2 seconds as fallback

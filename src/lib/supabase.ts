@@ -14,7 +14,7 @@ if (!supabaseAnonKey) {
 }
 
 // Create Supabase client with secure configuration
-const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
