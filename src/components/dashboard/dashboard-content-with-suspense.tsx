@@ -10,7 +10,6 @@ import {
   Search,
   Filter,
   Grid,
-  List,
   Bell,
   User,
   LogOut,
@@ -48,7 +47,6 @@ export function DashboardContentWithSuspense({
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [searchQuery, setSearchQuery] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [guestName, setGuestName] = useState<string | null>(initialGuestName)
@@ -167,7 +165,7 @@ export function DashboardContentWithSuspense({
             {
               id: 'sample_1',
               title: 'Welcome to PitStop!',
-              description: 'This is your first task. You can edit, complete, or delete it.',
+              description: 'This is your first task. You can edit, complete, or delete it. Click to view details!',
               status: 'ongoing',
               priority: 'medium',
               visibility: 'public',
@@ -175,11 +173,52 @@ export function DashboardContentWithSuspense({
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
               position: 0,
+              comments: [
+                {
+                  id: 'comment_1',
+                  task_id: 'sample_1',
+                  user_id: 'system',
+                  content: 'This is a comment on the task!',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                  user: {
+                    id: 'system',
+                    email: 'system@pitstop.com',
+                    full_name: 'System',
+                    role: 'user',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                  }
+                }
+              ],
+              sub_tasks: [
+                {
+                  id: 'sub_1',
+                  task_id: 'sample_1',
+                  title: 'Review welcome message',
+                  description: 'Read through the welcome instructions',
+                  status: 'completed',
+                  position: 0,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                  completed_at: new Date().toISOString()
+                },
+                {
+                  id: 'sub_2',
+                  task_id: 'sample_1',
+                  title: 'Create your first task',
+                  description: 'Click the Create New Task button',
+                  status: 'ongoing',
+                  position: 1,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }
+              ]
             },
             {
               id: 'sample_2',
               title: 'Try creating a new task',
-              description: 'Click the "Create New Task" button to add your own tasks.',
+              description: 'Click the "Create New Task" button to add your own tasks. You can also delete tasks!',
               status: 'completed',
               priority: 'low',
               visibility: 'private',
@@ -187,11 +226,46 @@ export function DashboardContentWithSuspense({
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
               position: 1,
+              comments: [
+                {
+                  id: 'comment_2',
+                  task_id: 'sample_2',
+                  user_id: 'system',
+                  content: 'Great job completing this task!',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                  user: {
+                    id: 'system',
+                    email: 'system@pitstop.com',
+                    full_name: 'System',
+                    role: 'user',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                  }
+                },
+                {
+                  id: 'comment_3',
+                  task_id: 'sample_2',
+                  user_id: 'system',
+                  content: 'You can add multiple comments to tasks!',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                  user: {
+                    id: 'system',
+                    email: 'system@pitstop.com',
+                    full_name: 'System',
+                    role: 'user',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                  }
+                }
+              ],
+              sub_tasks: []
             },
             {
               id: 'sample_3',
               title: 'Explore the features',
-              description: 'Try the search, filters, and different view modes.',
+              description: 'Try the search, filters, and different view modes. Tasks are now only in grid view!',
               status: 'ongoing',
               priority: 'high',
               visibility: 'public',
@@ -199,6 +273,41 @@ export function DashboardContentWithSuspense({
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
               position: 2,
+              comments: [],
+              sub_tasks: [
+                {
+                  id: 'sub_3',
+                  task_id: 'sample_3',
+                  title: 'Test search functionality',
+                  description: 'Use the search bar to find tasks',
+                  status: 'completed',
+                  position: 0,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                  completed_at: new Date().toISOString()
+                },
+                {
+                  id: 'sub_4',
+                  task_id: 'sample_3',
+                  title: 'Try filter options',
+                  description: 'Use status and priority filters',
+                  status: 'completed',
+                  position: 1,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                  completed_at: new Date().toISOString()
+                },
+                {
+                  id: 'sub_5',
+                  task_id: 'sample_3',
+                  title: 'Click on task cards',
+                  description: 'Tasks are now clickable and lead to detail pages',
+                  status: 'ongoing',
+                  position: 2,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }
+              ]
             }
           ]
           localStorage.setItem('guest_tasks', JSON.stringify(sampleTasks))
@@ -411,20 +520,11 @@ export function DashboardContentWithSuspense({
                 )}
               </div>
 
-              {/* View Toggle */}
+              {/* Grid View - Only view mode */}
               <div className="flex items-center border border-border rounded-lg">
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 ${viewMode === 'list' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                >
-                  <List className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 ${viewMode === 'grid' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                >
+                <div className="p-2 bg-accent text-accent-foreground rounded-l-lg">
                   <Grid className="h-4 w-4" />
-                </button>
+                </div>
               </div>
 
               {/* Theme Toggle */}
@@ -545,8 +645,9 @@ export function DashboardContentWithSuspense({
                     tasks={filteredTasks}
                     onUpdateTask={updateTask}
                     onDeleteTask={deleteTask}
-                    viewMode={viewMode}
+                    viewMode="grid"
                     searchQuery={searchQuery}
+                    isGuestMode={isGuestMode}
                   />
                 )}
               </div>

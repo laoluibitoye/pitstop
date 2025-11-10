@@ -15,7 +15,7 @@ export default function TaskDetailPageWrapper({ params }: TaskPageProps) {
   return (
     <div className="min-h-screen bg-background">
       <Suspense fallback={<LoadingSpinner />}>
-        <TaskDetailPage taskId={params.taskId} />
+        <TaskDetailPage />
       </Suspense>
     </div>
   )

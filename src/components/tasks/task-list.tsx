@@ -1,7 +1,8 @@
 'use client'
 
 import { Task } from '@/types'
-import { CheckCircle, Clock, User, Trash2, Edit } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { CheckCircle, Clock, User, Trash2, Edit, MessageCircle, CheckSquare } from 'lucide-react'
 
 interface TaskListProps {
   tasks: Task[]
@@ -9,9 +10,12 @@ interface TaskListProps {
   onDeleteTask: (taskId: string) => void
   viewMode: 'grid' | 'list'
   searchQuery: string
+  isGuestMode?: boolean
 }
 
-const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode }: any) => {
+const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode, isGuestMode = false }: any) => {
+  const router = useRouter()
+  
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'text-green-600 bg-green-100 dark:bg-green-900/20'
@@ -32,31 +36,97 @@ const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode }: any) => {
     }
   }
 
+  const handleTaskClick = () => {
+    router.push(`/tasks/${task.id}`)
+  }
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent task click when deleting
+    if (isGuestMode || task.created_by === 'guest' || task.created_by === 'sample') {
+      onDeleteTask(task.id) // Allow guests to delete their created tasks
+    } else {
+      onDeleteTask(task.id) // For now, allow all deletions (can be restricted later)
+    }
+  }
+
+  const getCommentCount = () => {
+    return task.comments?.length || 0
+  }
+
+  const getSubTaskProgress = () => {
+    if (!task.sub_tasks || task.sub_tasks.length === 0) return null
+    const completed = task.sub_tasks.filter((st: any) => st.status === 'completed').length
+    const total = task.sub_tasks.length
+    return { completed, total }
+  }
+
   if (viewMode === 'grid') {
+    const subTaskProgress = getSubTaskProgress()
+    const commentCount = getCommentCount()
+
     return (
-      <div className="neo-card p-6 bg-white/50 dark:bg-dark-card/50 hover:scale-105 transition-transform duration-200">
+      <div
+        className="neo-card p-6 bg-white/50 dark:bg-dark-card/50 hover:scale-105 transition-transform duration-200 cursor-pointer"
+        onClick={handleTaskClick}
+      >
         <div className="flex items-start justify-between mb-4">
-          <h3 className="font-semibold text-primary-900 dark:text-dark-text text-lg">{task.title}</h3>
-          <div className="flex space-x-2">
+          <h3 className="font-semibold text-primary-900 dark:text-dark-text text-lg pr-2">{task.title}</h3>
+          <div className="flex items-center space-x-2 flex-shrink-0">
+            {/* Comment Count */}
+            {commentCount > 0 && (
+              <div className="flex items-center space-x-1 text-muted-foreground">
+                <MessageCircle className="h-3 w-3" />
+                <span className="text-xs">{commentCount}</span>
+              </div>
+            )}
+            {/* Sub-task Progress */}
+            {subTaskProgress && (
+              <div className="flex items-center space-x-1 text-muted-foreground">
+                <CheckSquare className="h-3 w-3" />
+                <span className="text-xs">{subTaskProgress.completed}/{subTaskProgress.total}</span>
+              </div>
+            )}
+            {/* Delete Button */}
             <button
-              onClick={() => onDeleteTask(task.id)}
-              className="p-1 text-red-500 hover:text-red-600"
+              onClick={handleDelete}
+              className="p-1 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+              title={isGuestMode ? "Delete task" : "Delete task"}
             >
               <Trash2 className="h-4 w-4" />
             </button>
           </div>
         </div>
         {task.description && (
-          <p className="text-primary-600 dark:text-primary-300 mb-4 text-sm">{task.description}</p>
+          <p className="text-primary-600 dark:text-primary-300 mb-4 text-sm line-clamp-2">{task.description}</p>
         )}
-        <div className="flex items-center justify-between">
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
-            {task.status}
-          </span>
-          <span className={`text-xs font-medium ${getPriorityColor(task.priority)}`}>
-            {task.priority}
-          </span>
+        
+        {/* Task Metadata Row */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-2">
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
+              {task.status}
+            </span>
+            <span className={`text-xs font-medium ${getPriorityColor(task.priority)}`}>
+              {task.priority}
+            </span>
+          </div>
         </div>
+
+        {/* Sub-task Progress Bar */}
+        {subTaskProgress && (
+          <div className="mt-3">
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+              <span>Progress</span>
+              <span>{Math.round((subTaskProgress.completed / subTaskProgress.total) * 100)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+              <div
+                className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
+                style={{ width: `${(subTaskProgress.completed / subTaskProgress.total) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -101,7 +171,7 @@ const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode }: any) => {
   )
 }
 
-export function TaskList({ tasks, onUpdateTask, onDeleteTask, viewMode, searchQuery }: TaskListProps) {
+export function TaskList({ tasks, onUpdateTask, onDeleteTask, viewMode, searchQuery, isGuestMode = false }: TaskListProps) {
   const filteredTasks = tasks.filter(task =>
     task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     task.description?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -131,6 +201,7 @@ export function TaskList({ tasks, onUpdateTask, onDeleteTask, viewMode, searchQu
             onUpdateTask={onUpdateTask}
             onDeleteTask={onDeleteTask}
             viewMode={viewMode}
+            isGuestMode={isGuestMode}
           />
         ))}
       </div>
@@ -146,6 +217,7 @@ export function TaskList({ tasks, onUpdateTask, onDeleteTask, viewMode, searchQu
           onUpdateTask={onUpdateTask}
           onDeleteTask={onDeleteTask}
           viewMode={viewMode}
+          isGuestMode={isGuestMode}
         />
       ))}
     </div>
