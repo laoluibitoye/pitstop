@@ -225,11 +225,22 @@ export function DashboardContent() {
               className="fixed left-0 top-0 z-50 h-full w-64 border-r border-border bg-card"
             >
               <div className="flex h-16 items-center justify-between border-b border-border px-6">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">P</span>
+                <div className="flex flex-col">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                      <span className="text-white font-bold text-sm">P</span>
+                    </div>
+                    <span className="text-lg font-semibold">PitStop</span>
                   </div>
-                  <span className="text-lg font-semibold">PitStop</span>
+                  <div className="ml-10 mt-1">
+                    <p className="text-sm text-muted-foreground">
+                      {isGuestMode ? `Welcome, ${guestName}!` : 'Dashboard'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
+                      {isGuestMode && ' • Guest Mode • Limited Access'}
+                    </p>
+                  </div>
                 </div>
                 <button
                   onClick={() => setSidebarOpen(false)}
@@ -258,10 +269,10 @@ export function DashboardContent() {
       </AnimatePresence>
 
       {/* Main Content Area */}
-      <div className="lg:pl-64">
+      <div className="flex flex-col flex-1">
         {/* Modern Top Header */}
-        <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
-          <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => setSidebarOpen(true)}
@@ -269,8 +280,6 @@ export function DashboardContent() {
               >
                 <Menu className="h-4 w-4" />
               </button>
-              
-              {/* Logo in header */}
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-sm">P</span>
@@ -365,7 +374,7 @@ export function DashboardContent() {
         </header>
 
         {/* Main Dashboard Content */}
-        <main className="flex-1 p-6 lg:pl-72">
+        <main className="flex-1 p-6">
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Quick Actions */}
             <div className="flex flex-col sm:flex-row gap-4">
