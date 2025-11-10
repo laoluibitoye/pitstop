@@ -23,7 +23,6 @@ import {
 import { useAuth } from '@/components/providers/auth-provider'
 import { useTheme } from 'next-themes'
 import { TaskList } from '@/components/tasks/task-list'
-import { EnhancedTaskList } from '@/components/tasks/enhanced-task-list'
 import { TaskFilters } from '@/components/tasks/task-filters'
 import { CreateTaskModal } from '@/components/tasks/create-task-modal'
 import { DashboardStats } from '@/components/dashboard/dashboard-stats'
@@ -542,12 +541,12 @@ export function DashboardContentWithSuspense({
                     </div>
                   </div>
                 ) : (
-                  <EnhancedTaskList
+                  <TaskList
                     tasks={filteredTasks}
                     onUpdateTask={updateTask}
                     onDeleteTask={deleteTask}
+                    viewMode={viewMode}
                     searchQuery={searchQuery}
-                    isGuestMode={isGuestMode}
                   />
                 )}
               </div>

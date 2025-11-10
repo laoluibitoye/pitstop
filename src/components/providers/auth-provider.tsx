@@ -63,7 +63,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Always set loading to false after 2 seconds as fallback
     const loadingTimeout = setTimeout(() => {
-      console.log('Auth loading timeout - setting loading to false')
       setLoading(false)
     }, 2000)
 

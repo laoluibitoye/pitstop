@@ -4,28 +4,29 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY
 
-// Validate environment variables are present
-if (!supabaseUrl) {
-  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable')
-}
+// Create Supabase client with graceful error handling
+let supabase: any = null
 
-if (!supabaseAnonKey) {
-  throw new Error('Missing SUPABASE_ANON_KEY environment variable')
-}
-
-// Create Supabase client with secure configuration
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
+if (supabaseUrl && supabaseAnonKey) {
+  try {
+    supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: 10
+        }
+      }
+    })
+  } catch (error) {
+    console.warn('Failed to initialize Supabase client:', error)
   }
-})
+}
+
+export { supabase }
 
 // Auth helper functions
 export const auth = {
