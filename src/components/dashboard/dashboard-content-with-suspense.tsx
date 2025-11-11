@@ -382,6 +382,7 @@ export function DashboardContentWithSuspense({
         ...taskData,
         status: 'ongoing',
         priority: 'medium',
+        created_by: 'guest',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }
@@ -413,9 +414,17 @@ export function DashboardContentWithSuspense({
   const deleteTask = (taskId: string) => {
     if (isGuestMode) {
       const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
-      const filteredTasks = guestTasks.filter((task: Task) => task.id !== taskId)
-      localStorage.setItem('guest_tasks', JSON.stringify(filteredTasks))
-      setTasks(filteredTasks)
+      const taskToDelete = guestTasks.find((task: Task) => task.id === taskId)
+      
+      // Only allow guests to delete their own tasks (not sample tasks)
+      if (taskToDelete && taskToDelete.created_by === 'guest') {
+        const filteredTasks = guestTasks.filter((task: Task) => task.id !== taskId)
+        localStorage.setItem('guest_tasks', JSON.stringify(filteredTasks))
+        setTasks(filteredTasks)
+      } else {
+        // Show a message that they can only delete their own tasks
+        console.log('You can only delete tasks you created.')
+      }
     } else {
       setTasks(prev => prev.filter(task => task.id !== taskId))
     }
@@ -475,7 +484,6 @@ export function DashboardContentWithSuspense({
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
-                      {isGuestMode && ' • Guest Mode • Limited Access'}
                     </p>
                   </div>
                 </div>
@@ -537,7 +545,6 @@ export function DashboardContentWithSuspense({
                   </h1>
                   <p className="text-sm text-muted-foreground">
                     {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
-                    {isGuestMode && ' • Guest Mode • Limited Access'}
                   </p>
                 </div>
               </div>
@@ -629,18 +636,11 @@ export function DashboardContentWithSuspense({
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setShowCreateModal(true)}
                 className="btn-primary"
-                disabled={isGuestMode}
-                title={isGuestMode ? "Sign up to create unlimited tasks" : "Create a new task"}
+                title="Create a new task"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create New Task
               </motion.button>
-              {isGuestMode && (
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Bell className="h-4 w-4 mr-1" />
-                  Guest Mode: Limited to sample tasks only
-                </div>
-              )}
             </div>
 
             {/* Dashboard Stats */}
