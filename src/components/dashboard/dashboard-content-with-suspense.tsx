@@ -17,7 +17,8 @@ import {
   Sun,
   Menu,
   X,
-  ArrowLeft
+  ArrowLeft,
+  Users
 } from 'lucide-react'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useTheme } from 'next-themes'
@@ -25,7 +26,8 @@ import { TaskList } from '@/components/tasks/task-list'
 import { TaskFilterRow } from '@/components/tasks/task-filter-row'
 import { CreateTaskModal } from '@/components/tasks/create-task-modal'
 import { DashboardStats } from '@/components/dashboard/dashboard-stats'
-import { ActiveUsers } from '@/components/ui/active-users'
+import { ActiveUsersSidebar } from '@/components/ui/active-users/active-users-sidebar'
+import { useActiveUsers } from '@/hooks/use-active-users'
 import { Task } from '@/types'
 import { ThemeToggle } from '@/components/theme-toggle'
 
@@ -52,6 +54,15 @@ export function DashboardContentWithSuspense({
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [activeUsersSidebarOpen, setActiveUsersSidebarOpen] = useState(false)
+
+  // Initialize Active Users hook
+  const activeUsers = useActiveUsers({
+    maxVisibleUsers: 20,
+    activityWindowMinutes: 5,
+    updateIntervalMs: 30000,
+    enableDeviceDetection: true
+  })
   const [searchQuery, setSearchQuery] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [guestName, setGuestName] = useState<string | null>(initialGuestName)
@@ -614,8 +625,13 @@ export function DashboardContentWithSuspense({
                 </div>
               </div>
 
-              {/* Active Users Indicator */}
-              <ActiveUsers className="hidden sm:flex" />
+              {/* Active Users Count in Header (Secondary Indicator) */}
+              {activeUsers.users.length > 0 && (
+                <div className="hidden sm:flex items-center space-x-2 text-sm text-muted-foreground">
+                  <Users className="h-4 w-4" />
+                  <span>{activeUsers.users.length} active</span>
+                </div>
+              )}
 
               {/* Theme Toggle */}
               <button
@@ -774,6 +790,19 @@ export function DashboardContentWithSuspense({
           isGuestMode={isGuestMode}
         />
       )}
+
+      {/* Active Users Sidebar */}
+      <ActiveUsersSidebar
+        isOpen={activeUsersSidebarOpen}
+        onToggle={() => setActiveUsersSidebarOpen(!activeUsersSidebarOpen)}
+        users={activeUsers.users}
+        isLoading={activeUsers.isLoading}
+        error={activeUsers.error}
+        lastUpdate={activeUsers.lastUpdate}
+        isConnected={activeUsers.isConnected}
+        position="right"
+        className="hidden lg:block"
+      />
     </div>
   )
 }
