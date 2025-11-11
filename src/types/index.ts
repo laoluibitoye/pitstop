@@ -3,9 +3,12 @@
 export interface Profile {
   id: string
   email: string
+  username?: string
   full_name?: string
   avatar_url?: string
   role: 'user' | 'admin'
+  is_online?: boolean
+  last_seen?: string
   created_at: string
   updated_at: string
 }

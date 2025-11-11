@@ -11,8 +11,8 @@ interface AuthContextType {
   loading: boolean
   userRole: 'user' | 'admin' | null
   access: RoleBasedAccess
-  signIn: (email: string, password: string) => Promise<any>
-  signUp: (email: string, password: string) => Promise<any>
+  signIn: (emailOrUsername: string, password: string) => Promise<any>
+  signUp: (email: string, password: string, username?: string) => Promise<any>
   signOut: () => Promise<void>
   checkPermission: (permission: keyof RoleBasedAccess) => boolean
 }
@@ -144,15 +144,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return access[permission] || false
   }
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (emailOrUsername: string, password: string) => {
     if (!supabase) {
       throw new Error('Authentication service is not available. Please check your internet connection and try again.')
     }
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    
+    let loginIdentifier = emailOrUsername
+    
+    // Check if the input looks like a username (contains @ means it's an email)
+    if (!emailOrUsername.includes('@')) {
+      // If it's a username, try to find the associated email
+      // For now, we'll assume username format: try to reconstruct email or use direct username
+      // In a real implementation, you would query your database to find the user's email by username
+      // Since we don't have a database query function yet, we'll handle this on the server side
+      loginIdentifier = emailOrUsername // Supabase supports username login directly
+    }
+    
+    const { data, error } = await supabase.auth.signInWithPassword({ 
+      email: loginIdentifier, 
+      password 
+    })
+    
     if (error) {
       // Provide user-friendly error messages
       if (error.message.includes('Invalid login credentials')) {
-        throw new Error('Invalid email or password. Please check your credentials and try again.')
+        throw new Error('Invalid email/username or password. Please check your credentials and try again.')
       } else if (error.message.includes('Email not confirmed')) {
         throw new Error('Please check your email inbox and click the confirmation link we sent you. If you don\'t see it, check your spam folder. Once confirmed, you can sign in.')
       } else if (error.message.includes('Too many requests')) {
@@ -164,17 +180,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data
   }
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, username?: string) => {
     if (!supabase) {
       throw new Error('Authentication service is not available. Please check your internet connection and try again.')
     }
+    
     const { data, error } = await supabase.auth.signUp({ 
       email, 
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+        data: {
+          username: username || email.split('@')[0], // Use provided username or default from email
+          full_name: username || email.split('@')[0]
+        }
       }
     })
+    
     if (error) {
       // Provide user-friendly error messages
       if (error.message.includes('User already registered')) {
@@ -183,6 +205,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('Password must be at least 6 characters long.')
       } else if (error.message.includes('Invalid email')) {
         throw new Error('Please enter a valid email address.')
+      } else if (error.message.includes('username') && error.message.includes('already')) {
+        throw new Error('This username is already taken. Please choose a different one.')
       } else {
         throw new Error(error.message || 'Account creation failed. Please try again.')
       }

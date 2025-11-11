@@ -4,9 +4,12 @@
 CREATE TABLE public.profiles (
   id UUID REFERENCES auth.users(id) PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
+  username TEXT UNIQUE,
   full_name TEXT,
   avatar_url TEXT,
   role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+  is_online BOOLEAN DEFAULT false,
+  last_seen TIMESTAMPTZ DEFAULT NOW(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

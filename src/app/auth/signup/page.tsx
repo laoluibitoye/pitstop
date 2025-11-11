@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -27,13 +28,14 @@ export default function SignUpPage() {
     setLoading(true)
 
     try {
-      const result = await signUp(email, password)
+      const result = await signUp(email, password, username)
       
       if (result.user && !result.session) {
         // User was created but needs email confirmation
         toast.success('🎉 Account created successfully! Please check your email and click the confirmation link before signing in.')
         // Clear form fields
         setEmail('')
+        setUsername('')
         setPassword('')
         setConfirmPassword('')
         // Redirect to sign-in page after 2 seconds
@@ -82,6 +84,21 @@ export default function SignUpPage() {
               placeholder="Enter your email"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-primary-900 dark:text-dark-text mb-2">
+              Username
+            </label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="neo-input w-full"
+              placeholder="Choose a unique username"
+              required
+            />
+            <p className="text-xs text-muted-foreground mt-1">This will be visible to other users</p>
           </div>
 
           <div>

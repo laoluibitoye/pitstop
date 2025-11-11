@@ -659,7 +659,7 @@ export function DashboardContentWithSuspense({
                 ) : user ? (
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-muted-foreground">
-                      {user.user_metadata?.full_name || user.email}
+                      {user.user_metadata?.username || user.user_metadata?.full_name || user.email?.split('@')[0]}
                     </span>
                     <button
                       onClick={handleLogout}
