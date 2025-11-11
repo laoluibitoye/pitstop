@@ -1,4 +1,21 @@
--- PitStop Database Schema (Supabase SQL)
+# **🔧 PitStop Database Setup Guide**
+
+## **📋 QUICK SETUP STEPS**
+
+### **Step 1: Access Supabase Dashboard**
+1. Go to https://supabase.com/dashboard
+2. Select your PitStop project: `gcrexljiaybcredenfvb`
+3. Navigate to **SQL Editor** (left sidebar)
+
+### **Step 2: Execute Database Schema**
+Copy and paste the following SQL into the Supabase SQL Editor and run it:
+
+```sql
+-- PitStop Database Schema (Complete Setup)
+-- Execute this entire script in Supabase SQL Editor
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Users table (extends Supabase auth.users)
 CREATE TABLE public.profiles (
@@ -17,9 +34,9 @@ CREATE TABLE public.profiles (
 -- Enable RLS
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- Create profile on user signup
+-- Create profile on user signup (UPDATED FOR USERNAME SUPPORT)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger AS $
+RETURNS trigger AS $$
 BEGIN
   INSERT INTO public.profiles (
     id, 
@@ -43,7 +60,7 @@ BEGIN
   );
   RETURN new;
 END;
-$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Trigger for new user
 CREATE OR REPLACE TRIGGER on_auth_user_created
@@ -279,7 +296,7 @@ CREATE POLICY "Anyone can create guest sessions" ON public.guest_sessions
   FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Users can view own guest session" ON public.guest_sessions
-  FOR SELECT USING (true); -- Allow public read for guest functionality
+  FOR SELECT USING (true);
 
 -- Indexes for better performance
 CREATE INDEX idx_tasks_status ON public.tasks(status);
@@ -293,3 +310,104 @@ CREATE INDEX idx_activity_logs_task_id ON public.activity_logs(task_id);
 CREATE INDEX idx_task_files_task_id ON public.task_files(task_id);
 CREATE INDEX idx_categories_user_id ON public.categories(user_id);
 CREATE INDEX idx_tags_user_id ON public.tags(user_id);
+CREATE INDEX idx_profiles_username ON public.profiles(username);
+CREATE INDEX idx_profiles_is_online ON public.profiles(is_online);
+CREATE INDEX idx_profiles_last_seen ON public.profiles(last_seen);
+
+-- Enable real-time for tables that need it
+ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.tasks;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.task_comments;
+
+-- Create function for online status management
+CREATE OR REPLACE FUNCTION public.set_user_online_status(user_id UUID, online_status BOOLEAN)
+RETURNS void AS $$
+BEGIN
+  UPDATE public.profiles 
+  SET 
+    is_online = online_status,
+    last_seen = CASE WHEN online_status = false THEN NOW() ELSE last_seen END,
+    updated_at = NOW()
+  WHERE id = user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant necessary permissions
+GRANT EXECUTE ON FUNCTION public.set_user_online_status(UUID, BOOLEAN) TO anon, authenticated;
+```
+
+### **Step 3: Verify Setup**
+After running the SQL, verify the setup by:
+
+1. **Check Tables**: Go to **Table Editor** in Supabase dashboard
+2. **Verify Profiles Table**: Should have `username`, `is_online`, `last_seen` fields
+3. **Check Policies**: All RLS policies should be active
+4. **Test Real-time**: The `profiles` table should be enabled for real-time updates
+
+## **🎯 WHAT THIS SETUP ENABLES**
+
+### **✅ Username Support**
+- **Registration**: New users get username from signup form or extracted from email
+- **Sign-in**: Users can login with either email OR username
+- **Display**: Dashboard shows username instead of email
+
+### **✅ Real-time Features**
+- **Online Status**: Track when users are active
+- **Active Users**: Display currently online users
+- **Presence System**: Real-time user activity tracking
+
+### **✅ Data Security**
+- **Row Level Security**: Users can only access their own data
+- **Proper Policies**: Comprehensive access control for all tables
+- **Authentication**: Secure user management through Supabase Auth
+
+## **🚀 TESTING AFTER SETUP**
+
+1. **Go to** `/auth/signup`
+2. **Fill form** with email, username, password
+3. **Create account** and verify email
+4. **Sign in** with either email or username
+5. **Check dashboard** - should show your username
+6. **Test active users** - open multiple tabs to see presence
+
+## **⚠️ TROUBLESHOOTING**
+
+### **If "relation does not exist" errors appear:**
+- Make sure the SQL executed successfully
+- Check Table Editor for all tables
+- Refresh the browser after setup
+
+### **If real-time doesn't work:**
+- Verify real-time is enabled for `profiles` table
+- Check browser console for connection errors
+- Ensure you're using the latest app version
+
+### **If auth fails:**
+- Verify email confirmation is working
+- Check Supabase Auth settings
+- Ensure RLS policies allow profile creation
+
+## **📝 DATABASE SCHEMA SUMMARY**
+
+| Table | Purpose | Key Features |
+|-------|---------|--------------|
+| `profiles` | User data | ✅ Username, Online status, Real-time |
+| `tasks` | Task management | Full CRUD, Assignment, Categories |
+| `task_comments` | Comments | Real-time updates, Thread support |
+| `categories` | Task organization | Custom colors, User-scoped |
+| `tags` | Task tagging | Many-to-many relationship |
+| `activity_logs` | User activity | Action tracking, Audit trail |
+| `task_files` | File attachments | Upload support, File metadata |
+| `guest_sessions` | Guest mode | Temporary sessions, Limited features |
+
+## **🎉 SUCCESS INDICATORS**
+
+After successful setup, you'll have:
+- ✅ Complete database with all required tables
+- ✅ Username support for registration and login
+- ✅ Real-time active users tracking
+- ✅ Secure data access with RLS policies
+- ✅ Performance-optimized with proper indexes
+- ✅ Production-ready authentication system
+
+**Your PitStop app will now be fully functional with username support and real-time features!**

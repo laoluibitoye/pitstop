@@ -515,46 +515,75 @@ export function DashboardContentWithSuspense({
               initial={{ x: -256 }}
               animate={{ x: 0 }}
               exit={{ x: -256 }}
-              className="fixed left-0 top-0 z-50 h-full w-64 border-r border-border bg-card"
+              className="fixed left-0 top-0 z-50 h-full w-80 border-r border-border bg-white dark:bg-gray-900 shadow-2xl"
             >
-              <div className="flex h-16 items-center justify-between border-b border-border px-6">
-                <div className="flex flex-col">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">P</span>
+              {/* Sidebar Header */}
+              <div className="relative border-b border-border bg-white dark:bg-gray-900">
+                <div className="flex flex-col pt-8 pb-4 px-6">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <span className="text-white font-bold text-lg">P</span>
                     </div>
-                    <span className="text-lg font-semibold">PitStop</span>
+                    <div>
+                      <span className="text-xl font-bold text-gray-900 dark:text-white">PitStop</span>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Collaborative Task Management</p>
+                    </div>
                   </div>
-                  <div className="ml-10 mt-1">
-                    <p className="text-sm text-muted-foreground">
+                  <div className="ml-13 mt-6">
+                    <p className="text-base font-semibold text-gray-700 dark:text-gray-300">
                       {isGuestMode ? `Welcome, ${guestName}!` : 'Dashboard'}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'} • {isGuestMode ? 'Guest Mode' : 'Full Access'}
                     </p>
                   </div>
                 </div>
+                
+                {/* Close Button - Positioned at top right */}
                 <button
                   onClick={() => setSidebarOpen(false)}
-                  className="p-2 hover:bg-accent rounded-lg lg:hidden"
+                  className="absolute top-4 right-4 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-all duration-200 touch-target z-10"
+                  aria-label="Close sidebar"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-5 w-5 text-gray-600 dark:text-gray-300" />
                 </button>
               </div>
-              <nav className="p-4 space-y-2">
-                <button onClick={handleGoHome} className="nav-link w-full justify-start">
-                  <Home className="h-4 w-4" />
-                  <span>Home</span>
+              
+              {/* Sidebar Navigation */}
+              <nav className="p-6 space-y-3 flex-1">
+                <button className="nav-link-enhanced w-full justify-start active group">
+                  <Grid className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+                  <span className="font-medium">Dashboard</span>
+                  <div className="w-2 h-2 bg-blue-500 rounded-full ml-auto"></div>
                 </button>
-                <button className="nav-link w-full justify-start active">
-                  <Grid className="h-4 w-4" />
-                  <span>Dashboard</span>
+                <button className="nav-link-enhanced w-full justify-start group">
+                  <Filter className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+                  <span className="font-medium">Tasks</span>
+                  <ArrowLeft className="h-4 w-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                 </button>
-                <button className="nav-link w-full justify-start">
-                  <Settings className="h-4 w-4" />
-                  <span>Settings</span>
+                <button className="nav-link-enhanced w-full justify-start group">
+                  <Settings className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+                  <span className="font-medium">Settings</span>
+                  <ArrowLeft className="h-4 w-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                 </button>
               </nav>
+              
+              {/* Sidebar Footer */}
+              <div className="p-6 border-t border-border bg-gray-50/50 dark:bg-gray-800/50">
+                <div className="flex items-center space-x-3 p-3 bg-white dark:bg-gray-700 rounded-xl shadow-sm">
+                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-xs">✓</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {isGuestMode ? 'Guest Mode' : 'Authenticated'}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {filteredTasks.length} active tasks
+                    </p>
+                  </div>
+                </div>
+              </div>
             </motion.aside>
           </>
         )}
@@ -568,30 +597,22 @@ export function DashboardContentWithSuspense({
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="p-2 hover:bg-accent rounded-lg lg:hidden"
+                className="p-2 hover:bg-accent rounded-lg lg:hidden touch-target"
+                aria-label="Toggle sidebar"
               >
                 <Menu className="h-4 w-4" />
               </button>
               
-              {/* Back to Home Button */}
-              <button
-                onClick={handleGoHome}
-                className="p-1 rounded-md hover:bg-accent flex items-center mr-2"
-                title="Back to Home"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </button>
-              
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+              <div className="header-mobile flex-1 min-w-0">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
                   <span className="text-white font-bold text-sm">P</span>
                 </div>
-                <div>
-                  <h1 className="text-xl font-semibold text-foreground">
-                    {isGuestMode ? `Welcome, ${guestName}!` : 'Dashboard'}
+                <div className="min-w-0">
+                  <h1 className="header-mobile-title text-sm sm:text-lg">
+                    PitStop
                   </h1>
-                  <p className="text-sm text-muted-foreground">
-                    {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
+                  <p className="header-mobile-subtitle hidden sm:block">
+                    {isGuestMode ? `Welcome, ${guestName || 'Guest'}!` : 'Dashboard'} • {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
                   </p>
                 </div>
               </div>
@@ -618,20 +639,9 @@ export function DashboardContentWithSuspense({
                 )}
               </div>
 
-              {/* Grid View - Only view mode */}
-              <div className="flex items-center border border-border rounded-lg">
-                <div className="p-2 bg-accent text-accent-foreground rounded-l-lg">
-                  <Grid className="h-4 w-4" />
-                </div>
-              </div>
+              
 
-              {/* Active Users Count in Header (Secondary Indicator) */}
-              {activeUsers.users.length > 0 && (
-                <div className="hidden sm:flex items-center space-x-2 text-sm text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  <span>{activeUsers.users.length} active</span>
-                </div>
-              )}
+              
 
               {/* Theme Toggle */}
               <button
@@ -774,8 +784,20 @@ export function DashboardContentWithSuspense({
                 </span>
               </div>
               
-              <div className="text-sm text-muted-foreground">
-                © 2025 PitStop. All rights reserved.
+              <div className="flex items-center space-x-6">
+                {/* Home Link */}
+                <button
+                  onClick={handleGoHome}
+                  className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 touch-target p-2 rounded-lg hover:bg-accent/50"
+                  title="Back to Home"
+                >
+                  <Home className="h-4 w-4" />
+                  <span>Home</span>
+                </button>
+                
+                <div className="text-sm text-muted-foreground">
+                  © 2025 PitStop. All rights reserved.
+                </div>
               </div>
             </div>
           </div>

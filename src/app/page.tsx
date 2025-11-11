@@ -11,39 +11,111 @@ import {
   Brain,
   Shield,
   Globe,
-  Headphones
+  Headphones,
+  Menu,
+  X
 } from 'lucide-react'
 import { SignInButton } from '@/components/auth/sign-in-button'
 import { SignUpButton } from '@/components/auth/sign-up-button'
 import { GuestModeButton } from '@/components/guest/guest-mode-button'
+import { useState } from 'react'
 
 export default function Home() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
+            {/* Logo */}
             <div className="flex items-center space-x-2">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
                 <span className="text-white font-bold text-xl">P</span>
               </div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">PitStop</h1>
-              <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs font-semibold rounded-full">
+              <span className="hidden sm:inline px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs font-semibold rounded-full">
                 100% FREE
               </span>
             </div>
+
+            {/* Desktop Navigation */}
             <nav className="hidden md:flex space-x-8">
               <a href="#features" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">Features</a>
               <a href="#how-it-works" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">How It Works</a>
               <a href="#use-cases" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">Use Cases</a>
               <a href="#why-choose" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">Why Choose</a>
             </nav>
-            <div className="flex space-x-4">
+
+            {/* Desktop Auth Buttons */}
+            <div className="hidden md:flex space-x-4">
               <SignInButton />
               <SignUpButton />
             </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              className="md:hidden p-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle mobile menu"
+            >
+              {mobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </button>
           </div>
+
+          {/* Mobile Menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col space-y-4">
+                {/* Mobile Navigation Links */}
+                <nav className="flex flex-col space-y-2">
+                  <a 
+                    href="#features" 
+                    className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors py-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Features
+                  </a>
+                  <a 
+                    href="#how-it-works" 
+                    className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors py-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    How It Works
+                  </a>
+                  <a 
+                    href="#use-cases" 
+                    className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors py-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Use Cases
+                  </a>
+                  <a 
+                    href="#why-choose" 
+                    className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors py-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Why Choose
+                  </a>
+                </nav>
+
+                {/* Mobile Auth Buttons */}
+                <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <SignInButton className="mobile-menu-button-secondary" />
+                  <SignUpButton className="mobile-menu-button-primary" />
+                  <div className="text-center">
+                    <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs font-semibold rounded-full">
+                      100% FREE
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
@@ -56,13 +128,13 @@ export default function Home() {
               Completely Free Forever • No Hidden Costs
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
+            <h1 className="fluid-text-5xl md:fluid-text-7xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
               The Ultimate
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Task Collaboration</span>
               Platform
             </h1>
             
-            <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-4xl mx-auto leading-relaxed">
+            <p className="fluid-text-xl md:fluid-text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-4xl mx-auto leading-relaxed">
               Streamline your team's productivity with real-time collaborative task management. 
               <strong className="text-gray-900 dark:text-white"> Completely free</strong> with premium features, 
               cross-platform accessibility, and intuitive workflow management.

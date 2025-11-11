@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/providers/auth-provider'
 import toast from 'react-hot-toast'
 
-export function SignInButton() {
+export function SignInButton({ className }: { className?: string }) {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const { user } = useAuth()
@@ -28,7 +28,7 @@ export function SignInButton() {
     <button
       onClick={handleSignIn}
       disabled={loading}
-      className="neo-button px-6 py-3 flex items-center space-x-2 disabled:opacity-50"
+      className={`neo-button px-6 py-3 flex items-center space-x-2 disabled:opacity-50 ${className}`}
     >
       <LogIn className="h-4 w-4" />
       <span>{loading ? 'Signing In...' : 'Sign In'}</span>
