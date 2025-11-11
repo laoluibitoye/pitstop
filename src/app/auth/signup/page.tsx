@@ -27,9 +27,30 @@ export default function SignUpPage() {
     setLoading(true)
 
     try {
-      await signUp(email, password)
-      toast.success('Account created successfully!')
-      router.push('/dashboard')
+      const result = await signUp(email, password)
+      
+      if (result.user && !result.session) {
+        // User was created but needs email confirmation
+        toast.success('🎉 Account created successfully! Please check your email and click the confirmation link before signing in.')
+        // Clear form fields
+        setEmail('')
+        setPassword('')
+        setConfirmPassword('')
+        // Redirect to sign-in page after 2 seconds
+        setTimeout(() => {
+          router.push('/auth/signin')
+        }, 2000)
+      } else if (result.session) {
+        // User was created and is automatically signed in (email confirmation disabled)
+        toast.success('Account created successfully!')
+        router.push('/dashboard')
+      } else {
+        // Fallback case
+        toast.success('Account created! Please check your email for confirmation.')
+        setTimeout(() => {
+          router.push('/auth/signin')
+        }, 2000)
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to create account')
     } finally {

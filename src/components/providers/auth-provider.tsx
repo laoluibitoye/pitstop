@@ -11,8 +11,8 @@ interface AuthContextType {
   loading: boolean
   userRole: 'user' | 'admin' | null
   access: RoleBasedAccess
-  signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string) => Promise<void>
+  signIn: (email: string, password: string) => Promise<any>
+  signUp: (email: string, password: string) => Promise<any>
   signOut: () => Promise<void>
   checkPermission: (permission: keyof RoleBasedAccess) => boolean
 }
@@ -29,8 +29,8 @@ const AuthContext = createContext<AuthContextType>({
     canViewAnalytics: false,
     canManageSettings: false,
   },
-  signIn: async () => {},
-  signUp: async () => {},
+  signIn: async () => null,
+  signUp: async () => null,
   signOut: async () => {},
   checkPermission: () => false,
 })
@@ -154,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error.message.includes('Invalid login credentials')) {
         throw new Error('Invalid email or password. Please check your credentials and try again.')
       } else if (error.message.includes('Email not confirmed')) {
-        throw new Error('Please check your email and confirm your account before signing in.')
+        throw new Error('Please check your email inbox and click the confirmation link we sent you. If you don\'t see it, check your spam folder. Once confirmed, you can sign in.')
       } else if (error.message.includes('Too many requests')) {
         throw new Error('Too many login attempts. Please wait a moment before trying again.')
       } else {
