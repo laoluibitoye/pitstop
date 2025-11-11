@@ -79,7 +79,7 @@ export function GuestModeButton({ className }: { className?: string }) {
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            className="absolute top-full left-0 right-0 mt-2 glass-card p-4 z-50 border border-white/20"
+            className="absolute top-full left-0 right-0 mt-2 glass-card p-6 z-50 border border-white/20 min-w-[320px] w-full max-w-sm"
           >
             <div className="mb-3">
               <label className="text-sm font-medium text-foreground mb-2 block">
@@ -101,7 +101,7 @@ export function GuestModeButton({ className }: { className?: string }) {
               <button
                 onClick={handleSubmitGuestName}
                 disabled={loading || !guestName.trim()}
-                className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:from-blue-600 hover:to-blue-700 transition-colors disabled:opacity-50"
+                className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-6 rounded-lg text-sm font-medium hover:from-blue-600 hover:to-blue-700 transition-colors disabled:opacity-50 whitespace-nowrap"
               >
                 {loading ? 'Starting...' : 'Continue as Guest'}
               </button>
