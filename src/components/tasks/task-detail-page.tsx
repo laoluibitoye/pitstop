@@ -21,6 +21,7 @@ import { Task, TaskComment, SubTask } from '@/types'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useTheme } from 'next-themes'
 import { motion, AnimatePresence } from 'framer-motion'
+import { ActiveUsers } from '@/components/ui/active-users'
 
 export function TaskDetailPage() {
   const router = useRouter()
@@ -413,6 +414,9 @@ export function TaskDetailPage() {
               )}
             </button>
             
+            {/* Active Users Indicator */}
+            <ActiveUsers className="hidden sm:flex" />
+
             {/* User Menu - Exactly like dashboard */}
             <div className="flex items-center space-x-2">
               {isGuestMode ? (

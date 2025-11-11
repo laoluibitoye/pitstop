@@ -25,6 +25,7 @@ import { TaskList } from '@/components/tasks/task-list'
 import { TaskFilterRow } from '@/components/tasks/task-filter-row'
 import { CreateTaskModal } from '@/components/tasks/create-task-modal'
 import { DashboardStats } from '@/components/dashboard/dashboard-stats'
+import { ActiveUsers } from '@/components/ui/active-users'
 import { Task } from '@/types'
 import { ThemeToggle } from '@/components/theme-toggle'
 
@@ -83,6 +84,41 @@ export function DashboardContentWithSuspense({
       } catch (error) {
         console.warn('localStorage not available:', error)
         setGuestName('Guest User')
+      }
+    }
+    
+    // Initialize demo activity data for active users feature
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const existingActivities = localStorage.getItem('user_activities')
+        if (!existingActivities) {
+          const demoActivities = [
+            {
+              userKey: 'demo_user_1',
+              userName: 'Sarah Johnson',
+              timestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(), // 2 minutes ago
+              page: '/dashboard',
+              type: 'user'
+            },
+            {
+              userKey: 'demo_user_2',
+              userName: 'Mike Chen',
+              timestamp: new Date(Date.now() - 4 * 60 * 1000).toISOString(), // 4 minutes ago
+              page: '/tasks',
+              type: 'user'
+            },
+            {
+              userKey: 'demo_guest_1',
+              userName: 'Guest Explorer',
+              timestamp: new Date(Date.now() - 1 * 60 * 1000).toISOString(), // 1 minute ago
+              page: '/dashboard?mode=guest',
+              type: 'guest'
+            }
+          ]
+          localStorage.setItem('user_activities', JSON.stringify(demoActivities))
+        }
+      } catch (error) {
+        console.warn('Failed to initialize demo activities:', error)
       }
     }
   }, [isGuestMode])
@@ -577,6 +613,9 @@ export function DashboardContentWithSuspense({
                   <Grid className="h-4 w-4" />
                 </div>
               </div>
+
+              {/* Active Users Indicator */}
+              <ActiveUsers className="hidden sm:flex" />
 
               {/* Theme Toggle */}
               <button
