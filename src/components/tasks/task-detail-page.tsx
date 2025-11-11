@@ -54,6 +54,14 @@ export function TaskDetailPage() {
     // Check if in guest mode
     const urlParams = new URLSearchParams(window.location.search)
     setIsGuestMode(urlParams.get('mode') === 'guest')
+    
+    // Also check localStorage for guest session
+    if (urlParams.get('mode') !== 'guest') {
+      const guestSession = localStorage.getItem('guest_session')
+      if (guestSession) {
+        setIsGuestMode(true)
+      }
+    }
   }, [])
 
   const loadTask = async () => {
@@ -346,11 +354,23 @@ export function TaskDetailPage() {
             {/* Back to Dashboard Button */}
             <button
               onClick={() => {
+                // Preserve all current URL parameters when going back
+                const currentParams = new URLSearchParams(window.location.search)
+                const dashboardParams = new URLSearchParams()
+                
                 if (isGuestMode) {
-                  router.push('/dashboard?mode=guest')
-                } else {
-                  router.push('/dashboard')
+                  dashboardParams.set('mode', 'guest')
                 }
+                
+                // Add any other parameters that might be present
+                Array.from(currentParams.entries()).forEach(([key, value]) => {
+                  if (key !== 'taskId' && key !== 'mode') {
+                    dashboardParams.set(key, value)
+                  }
+                })
+                
+                const dashboardUrl = `/dashboard${dashboardParams.toString() ? '?' + dashboardParams.toString() : ''}`
+                router.push(dashboardUrl)
               }}
               className="p-1 rounded-md hover:bg-accent flex items-center mr-2"
               title="Back to Dashboard"
