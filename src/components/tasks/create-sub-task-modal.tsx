@@ -12,7 +12,6 @@ interface CreateSubTaskModalProps {
 
 export function CreateSubTaskModal({ taskId, onClose, onCreate }: CreateSubTaskModalProps) {
   const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,8 +23,7 @@ export function CreateSubTaskModal({ taskId, onClose, onCreate }: CreateSubTaskM
     try {
       onCreate({
         task_id: taskId,
-        title: title.trim(),
-        description: description.trim() || undefined
+        title: title.trim()
       })
     } catch (error) {
       console.error('Error creating sub-task:', error)
@@ -62,19 +60,6 @@ export function CreateSubTaskModal({ taskId, onClose, onCreate }: CreateSubTaskM
               className="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg bg-white dark:bg-dark-bg text-primary-900 dark:text-dark-text placeholder-primary-400 focus:outline-none focus:ring-2 focus:ring-accent-blue-500"
               autoFocus
               required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter sub-task description (optional)"
-              rows={3}
-              className="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg bg-white dark:bg-dark-bg text-primary-900 dark:text-dark-text placeholder-primary-400 focus:outline-none focus:ring-2 focus:ring-accent-blue-500"
             />
           </div>
 

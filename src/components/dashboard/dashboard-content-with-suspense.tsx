@@ -22,7 +22,7 @@ import {
 import { useAuth } from '@/components/providers/auth-provider'
 import { useTheme } from 'next-themes'
 import { TaskList } from '@/components/tasks/task-list'
-import { TaskFilters } from '@/components/tasks/task-filters'
+import { TaskFilterRow } from '@/components/tasks/task-filter-row'
 import { CreateTaskModal } from '@/components/tasks/create-task-modal'
 import { DashboardStats } from '@/components/dashboard/dashboard-stats'
 import { Task } from '@/types'
@@ -35,6 +35,10 @@ interface TaskFilters {
   status: TaskStatus[]
   priority: TaskPriority[]
   category_id: string
+  created_date_from?: string
+  created_date_to?: string
+  updated_date_from?: string
+  updated_date_to?: string
 }
 
 export function DashboardContentWithSuspense({
@@ -54,6 +58,10 @@ export function DashboardContentWithSuspense({
     status: [],
     priority: [],
     category_id: '',
+    created_date_from: '',
+    created_date_to: '',
+    updated_date_from: '',
+    updated_date_to: '',
   })
 
   const { user, loading: authLoading, signOut } = useAuth()
@@ -66,9 +74,15 @@ export function DashboardContentWithSuspense({
     // Only access localStorage on client side
     if (isGuestMode && typeof window !== 'undefined' && window.localStorage) {
       try {
-        setGuestName(localStorage.getItem('guest_name'))
+        let guestName = localStorage.getItem('guest_name')
+        if (!guestName) {
+          guestName = 'Guest User'
+          localStorage.setItem('guest_name', guestName)
+        }
+        setGuestName(guestName)
       } catch (error) {
         console.warn('localStorage not available:', error)
+        setGuestName('Guest User')
       }
     }
   }, [isGuestMode])
@@ -97,7 +111,37 @@ export function DashboardContentWithSuspense({
     // Priority filter
     const matchesPriority = filters.priority.length === 0 || filters.priority.includes(task.priority)
     
-    return matchesSearch && matchesStatus && matchesPriority
+    // Created date filter
+    let matchesCreatedDate = true
+    if (filters.created_date_from || filters.created_date_to) {
+      const taskCreatedDate = new Date(task.created_at)
+      if (filters.created_date_from) {
+        const fromDate = new Date(filters.created_date_from)
+        matchesCreatedDate = matchesCreatedDate && taskCreatedDate >= fromDate
+      }
+      if (filters.created_date_to) {
+        const toDate = new Date(filters.created_date_to)
+        toDate.setHours(23, 59, 59, 999) // Include the entire day
+        matchesCreatedDate = matchesCreatedDate && taskCreatedDate <= toDate
+      }
+    }
+    
+    // Updated date filter
+    let matchesUpdatedDate = true
+    if (filters.updated_date_from || filters.updated_date_to) {
+      const taskUpdatedDate = new Date(task.updated_at)
+      if (filters.updated_date_from) {
+        const fromDate = new Date(filters.updated_date_from)
+        matchesUpdatedDate = matchesUpdatedDate && taskUpdatedDate >= fromDate
+      }
+      if (filters.updated_date_to) {
+        const toDate = new Date(filters.updated_date_to)
+        toDate.setHours(23, 59, 59, 999) // Include the entire day
+        matchesUpdatedDate = matchesUpdatedDate && taskUpdatedDate <= toDate
+      }
+    }
+    
+    return matchesSearch && matchesStatus && matchesPriority && matchesCreatedDate && matchesUpdatedDate
   })
 
   // Update tasks when filters change
@@ -603,25 +647,23 @@ export function DashboardContentWithSuspense({
             <DashboardStats tasks={filteredTasks} />
 
             {/* Content Area */}
-            <div className="grid gap-6 lg:grid-cols-4">
-              {/* Sidebar Filters */}
-              <div className="lg:col-span-1">
-                <TaskFilters
-                  filters={filters}
-                  onFiltersChange={setFilters}
-                  onSearch={setSearchQuery}
-                />
-              </div>
+            <div className="space-y-6">
+              {/* Horizontal Filter Row */}
+              <TaskFilterRow
+                filters={filters}
+                onFiltersChange={setFilters}
+                onSearch={setSearchQuery}
+              />
 
               {/* Task List */}
-              <div className="lg:col-span-3">
+              <div>
                 {loading ? (
                   <div className="space-y-4">
                     {[...Array(3)].map((_, i) => (
                       <div key={i} className="card p-6 loading-pulse h-24"></div>
                     ))}
                   </div>
-                ) : filteredTasks.length === 0 && (searchQuery || filters.status.length > 0 || filters.priority.length > 0) ? (
+                ) : filteredTasks.length === 0 && (searchQuery || filters.status.length > 0 || filters.priority.length > 0 || filters.created_date_from || filters.created_date_to || filters.updated_date_from || filters.updated_date_to) ? (
                   <div className="text-left py-12">
                     <div className="card p-8">
                       <Filter className="h-16 w-16 text-gray-400 mb-4" />
@@ -632,7 +674,15 @@ export function DashboardContentWithSuspense({
                       <button
                         onClick={() => {
                           setSearchQuery('')
-                          setFilters({ status: [], priority: [], category_id: '' })
+                          setFilters({ 
+                            status: [], 
+                            priority: [], 
+                            category_id: '',
+                            created_date_from: '',
+                            created_date_to: '',
+                            updated_date_from: '',
+                            updated_date_to: ''
+                          })
                         }}
                         className="btn-secondary"
                       >

@@ -176,6 +176,10 @@ export interface TaskFilters {
   assigned_to?: string
   due_date_from?: string
   due_date_to?: string
+  created_date_from?: string
+  created_date_to?: string
+  updated_date_from?: string
+  updated_date_to?: string
   search?: string
 }
 

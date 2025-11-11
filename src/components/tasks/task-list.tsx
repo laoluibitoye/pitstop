@@ -2,7 +2,7 @@
 
 import { Task } from '@/types'
 import { useRouter } from 'next/navigation'
-import { CheckCircle, Clock, User, Trash2, Edit, MessageCircle, CheckSquare } from 'lucide-react'
+import { CheckCircle, Clock, User, Trash2, Edit, MessageCircle, CheckSquare, Users } from 'lucide-react'
 
 interface TaskListProps {
   tasks: Task[]
@@ -60,9 +60,31 @@ const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode, isGuestMode = fa
     return { completed, total }
   }
 
+  const getParticipantCount = () => {
+    const uniqueUsers = new Set()
+    // Count unique comment authors
+    if (task.comments) {
+      task.comments.forEach((comment: any) => {
+        if (comment.user_id) uniqueUsers.add(comment.user_id)
+      })
+    }
+    // Count task creator
+    if (task.created_by) uniqueUsers.add(task.created_by)
+    // Count assigned user
+    if (task.assigned_to) uniqueUsers.add(task.assigned_to)
+    return uniqueUsers.size
+  }
+
   if (viewMode === 'grid') {
     const subTaskProgress = getSubTaskProgress()
     const commentCount = getCommentCount()
+    const participantCount = getParticipantCount()
+    const lastModified = new Date(task.updated_at).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
 
     return (
       <div
@@ -70,37 +92,13 @@ const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode, isGuestMode = fa
         onClick={handleTaskClick}
       >
         <div className="flex items-start justify-between mb-4">
-          <h3 className="font-semibold text-primary-900 dark:text-dark-text text-lg pr-2">{task.title}</h3>
-          <div className="flex items-center space-x-2 flex-shrink-0">
-            {/* Comment Count */}
-            {commentCount > 0 && (
-              <div className="flex items-center space-x-1 text-muted-foreground">
-                <MessageCircle className="h-3 w-3" />
-                <span className="text-xs">{commentCount}</span>
-              </div>
-            )}
-            {/* Sub-task Progress */}
-            {subTaskProgress && (
-              <div className="flex items-center space-x-1 text-muted-foreground">
-                <CheckSquare className="h-3 w-3" />
-                <span className="text-xs">{subTaskProgress.completed}/{subTaskProgress.total}</span>
-              </div>
-            )}
-            {/* Delete Button */}
-            <button
-              onClick={handleDelete}
-              className="p-1 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-              title={isGuestMode ? "Delete task" : "Delete task"}
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
+          <h3 className="font-semibold text-primary-900 dark:text-dark-text text-lg pr-2 flex-1">{task.title}</h3>
         </div>
         {task.description && (
           <p className="text-primary-600 dark:text-primary-300 mb-4 text-sm line-clamp-2">{task.description}</p>
         )}
         
-        {/* Task Metadata Row */}
+        {/* Task Metadata Row - Status/Priority Left, Icons Right */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
@@ -110,6 +108,38 @@ const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode, isGuestMode = fa
               {task.priority}
             </span>
           </div>
+          
+          {/* Icons Inline on Right */}
+          <div className="flex items-center space-x-2">
+            {/* Participants Count */}
+            <div className="flex items-center space-x-1 text-blue-600">
+              <Users className="h-3 w-3" />
+              <span className="text-xs font-medium">{participantCount}</span>
+            </div>
+            {/* Comment Count */}
+            <div className="flex items-center space-x-1 text-green-600">
+              <MessageCircle className="h-3 w-3" />
+              <span className="text-xs font-medium">{commentCount}</span>
+            </div>
+            {/* Sub-task Progress */}
+            <div className="flex items-center space-x-1 text-purple-600">
+              <CheckSquare className="h-3 w-3" />
+              <span className="text-xs font-medium">{subTaskProgress ? `${subTaskProgress.completed}/${subTaskProgress.total}` : '0/0'}</span>
+            </div>
+            {/* Delete Button */}
+            <button
+              onClick={handleDelete}
+              className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+              title={isGuestMode ? "Delete task" : "Delete task"}
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+
+        {/* Last Modified Date */}
+        <div className="text-xs text-muted-foreground mb-3">
+          Modified: {lastModified}
         </div>
 
         {/* Sub-task Progress Bar */}
@@ -131,41 +161,87 @@ const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode, isGuestMode = fa
     )
   }
 
+  const handleToggleStatus = (e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent task click when toggling status
+    onUpdateTask(task.id, { status: task.status === 'completed' ? 'ongoing' : 'completed' })
+  }
+
+  const subTaskProgress = getSubTaskProgress()
+  const commentCount = getCommentCount()
+  const participantCount = getParticipantCount()
+  const lastModified = new Date(task.updated_at).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+
   return (
-    <div className="neo-card p-4 bg-white/50 dark:bg-dark-card/50">
+    <div
+      className="neo-card p-4 bg-white/50 dark:bg-dark-card/50 hover:scale-[1.02] transition-transform duration-200 cursor-pointer"
+      onClick={handleTaskClick}
+    >
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 flex-1">
           <button
-            onClick={() => onUpdateTask(task.id, { status: task.status === 'completed' ? 'ongoing' : 'completed' })}
+            onClick={handleToggleStatus}
             className={`p-1 rounded-full ${
               task.status === 'completed' ? 'text-green-600' : 'text-gray-400 hover:text-green-600'
             }`}
           >
             <CheckCircle className="h-5 w-5" />
           </button>
-          <div>
+          <div className="flex-1">
             <h3 className={`font-semibold ${task.status === 'completed' ? 'line-through text-gray-500' : 'text-primary-900 dark:text-dark-text'}`}>
               {task.title}
             </h3>
             {task.description && (
-              <p className="text-sm text-primary-600 dark:text-primary-300">{task.description}</p>
+              <p className="text-sm text-primary-600 dark:text-primary-300 mb-2">{task.description}</p>
             )}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
+                  {task.status}
+                </span>
+                <span className={`text-xs font-medium ${getPriorityColor(task.priority)}`}>
+                  {task.priority}
+                </span>
+              </div>
+              
+              {/* Icons Inline on Right */}
+              <div className="flex items-center space-x-2">
+                {/* Participants Count */}
+                <div className="flex items-center space-x-1 text-blue-600">
+                  <Users className="h-3 w-3" />
+                  <span className="text-xs font-medium">{participantCount}</span>
+                </div>
+                {/* Comment Count */}
+                <div className="flex items-center space-x-1 text-green-600">
+                  <MessageCircle className="h-3 w-3" />
+                  <span className="text-xs font-medium">{commentCount}</span>
+                </div>
+                {/* Sub-task Progress */}
+                <div className="flex items-center space-x-1 text-purple-600">
+                  <CheckSquare className="h-3 w-3" />
+                  <span className="text-xs font-medium">{subTaskProgress ? `${subTaskProgress.completed}/${subTaskProgress.total}` : '0/0'}</span>
+                </div>
+                {/* Delete Button */}
+                <button
+                  onClick={handleDelete}
+                  className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                  title={isGuestMode ? "Delete task" : "Delete task"}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
-            {task.status}
-          </span>
-          <span className={`text-xs font-medium ${getPriorityColor(task.priority)}`}>
-            {task.priority}
-          </span>
-          <button
-            onClick={() => onDeleteTask(task.id)}
-            className="p-1 text-red-500 hover:text-red-600"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
+      </div>
+
+      {/* Last Modified Date */}
+      <div className="text-xs text-muted-foreground mt-2 ml-9">
+        Modified: {lastModified}
       </div>
     </div>
   )

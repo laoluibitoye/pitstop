@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckCircle, Clock, Flag, TrendingUp } from 'lucide-react'
+import { CheckCircle, Clock, Flag } from 'lucide-react'
 import { Task } from '@/types'
 
 interface DashboardStatsProps {
@@ -16,7 +16,7 @@ export function DashboardStats({ tasks }: DashboardStatsProps) {
     return new Date(task.due_date) < new Date() && task.status !== 'completed'
   }).length
 
-  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+  
 
   const stats = [
     {
@@ -67,29 +67,6 @@ export function DashboardStats({ tasks }: DashboardStatsProps) {
           </div>
         )
       })}
-      
-      {/* Completion Rate */}
-      <div className="neo-card p-6 bg-white/50 dark:bg-dark-card/50 md:col-span-2 lg:col-span-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-primary-600 dark:text-primary-300 font-medium">
-              Completion Rate
-            </p>
-            <p className="text-2xl font-bold text-primary-900 dark:text-dark-text">
-              {completionRate}%
-            </p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <TrendingUp className="h-6 w-6 text-green-600" />
-            <div className="w-32 h-2 bg-primary-200 dark:bg-primary-700 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-primary transition-all duration-500"
-                style={{ width: `${completionRate}%` }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }
