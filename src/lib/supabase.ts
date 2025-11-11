@@ -4,7 +4,16 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-// Create Supabase client with graceful error handling
+// Validate environment variables
+if (!supabaseUrl) {
+  console.error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable')
+}
+
+if (!supabaseAnonKey) {
+  console.error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable')
+}
+
+// Create Supabase client with enhanced error handling
 let supabase: any = null
 
 if (supabaseUrl && supabaseAnonKey) {
@@ -21,9 +30,16 @@ if (supabaseUrl && supabaseAnonKey) {
         }
       }
     })
+    console.log('✅ Supabase client initialized successfully')
   } catch (error) {
-    console.warn('Failed to initialize Supabase client:', error)
+    console.error('❌ Failed to initialize Supabase client:', error)
+    console.error('Please check your environment variables:')
+    console.error('- NEXT_PUBLIC_SUPABASE_URL should be your Supabase project URL')
+    console.error('- NEXT_PUBLIC_SUPABASE_ANON_KEY should be your Supabase anon key')
   }
+} else {
+  console.error('❌ Supabase client not initialized - missing environment variables')
+  console.error('Running in guest mode fallback')
 }
 
 export { supabase }

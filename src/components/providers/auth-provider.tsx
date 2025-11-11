@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userRole, setUserRole] = useState<'user' | 'admin' | null>(null)
   
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || ''
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
   
   // Add console logs to debug environment variables
   console.log('Supabase URL:', supabaseUrl)
@@ -145,21 +145,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signIn = async (email: string, password: string) => {
-    if (!supabase) throw new Error('Supabase client not initialized')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
+    if (!supabase) {
+      throw new Error('Authentication service is not available. Please check your internet connection and try again.')
+    }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      // Provide user-friendly error messages
+      if (error.message.includes('Invalid login credentials')) {
+        throw new Error('Invalid email or password. Please check your credentials and try again.')
+      } else if (error.message.includes('Email not confirmed')) {
+        throw new Error('Please check your email and confirm your account before signing in.')
+      } else if (error.message.includes('Too many requests')) {
+        throw new Error('Too many login attempts. Please wait a moment before trying again.')
+      } else {
+        throw new Error(error.message || 'Sign in failed. Please try again.')
+      }
+    }
+    return data
   }
 
   const signUp = async (email: string, password: string) => {
-    if (!supabase) throw new Error('Supabase client not initialized')
-    const { error } = await supabase.auth.signUp({ email, password })
-    if (error) throw error
+    if (!supabase) {
+      throw new Error('Authentication service is not available. Please check your internet connection and try again.')
+    }
+    const { data, error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`
+      }
+    })
+    if (error) {
+      // Provide user-friendly error messages
+      if (error.message.includes('User already registered')) {
+        throw new Error('An account with this email already exists. Please sign in instead.')
+      } else if (error.message.includes('Password should be at least')) {
+        throw new Error('Password must be at least 6 characters long.')
+      } else if (error.message.includes('Invalid email')) {
+        throw new Error('Please enter a valid email address.')
+      } else {
+        throw new Error(error.message || 'Account creation failed. Please try again.')
+      }
+    }
+    return data
   }
 
   const signOut = async () => {
-    if (!supabase) throw new Error('Supabase client not initialized')
+    if (!supabase) {
+      throw new Error('Authentication service is not available.')
+    }
     const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    if (error) {
+      throw new Error(error.message || 'Sign out failed. Please try again.')
+    }
     setUserRole(null)
   }
 
