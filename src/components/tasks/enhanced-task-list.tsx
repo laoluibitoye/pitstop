@@ -105,8 +105,8 @@ const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode, isGuestMode = fa
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
               {user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U'}
             </div>
-            <div>
-              <p className="font-medium text-foreground">
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-foreground truncate">
                 {user?.user_metadata?.full_name || 'You'}
               </p>
               <p className="text-xs text-muted-foreground flex items-center">
@@ -129,7 +129,7 @@ const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode, isGuestMode = fa
         </div>
 
         {/* Content */}
-        <h3 className="font-semibold text-foreground mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+        <h3 className="font-semibold text-foreground mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
           {task.title}
         </h3>
 

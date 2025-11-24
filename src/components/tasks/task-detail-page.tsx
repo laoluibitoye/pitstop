@@ -638,7 +638,7 @@ export function TaskDetailPage() {
         </header>
 
         {/* Main Task Content */}
-        <main className="flex-1 p-6 lg:pl-72">
+        <main className="flex-1 p-6">
           <div className="max-w-7xl mx-auto space-y-6">
 
             {/* Hero Task Card */}
@@ -703,8 +703,8 @@ export function TaskDetailPage() {
                       <button
                         onClick={toggleTaskStatus}
                         className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${task.status === 'completed'
-                            ? 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30'
-                            : 'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30'
+                          ? 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30'
+                          : 'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30'
                           }`}
                       >
                         {task.status === 'completed' ? (
@@ -723,8 +723,8 @@ export function TaskDetailPage() {
                       <button
                         onClick={() => toggleTaskVisibility(task.visibility === 'public' ? 'private' : 'public')}
                         className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${task.visibility === 'public'
-                            ? 'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30'
-                            : 'bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:hover:bg-orange-900/30'
+                          ? 'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30'
+                          : 'bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:hover:bg-orange-900/30'
                           }`}
                       >
                         {task.visibility === 'public' ? (
@@ -807,8 +807,8 @@ export function TaskDetailPage() {
                   <button
                     onClick={() => setActiveTab('overview')}
                     className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'overview'
-                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
                       }`}
                   >
                     Overview
@@ -816,8 +816,8 @@ export function TaskDetailPage() {
                   <button
                     onClick={() => setActiveTab('subtasks')}
                     className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'subtasks'
-                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
                       }`}
                   >
                     Sub-tasks ({totalSubTasks})
@@ -825,8 +825,8 @@ export function TaskDetailPage() {
                   <button
                     onClick={() => setActiveTab('comments')}
                     className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'comments'
-                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
                       }`}
                   >
                     Comments ({comments.length})
@@ -993,8 +993,8 @@ export function TaskDetailPage() {
                           <button
                             onClick={() => toggleSubTaskStatus(subTask.id)}
                             className={`flex-shrink-0 ${subTask.status === 'completed'
-                                ? 'text-green-600 hover:text-green-700'
-                                : 'text-gray-400 hover:text-green-600'
+                              ? 'text-green-600 hover:text-green-700'
+                              : 'text-gray-400 hover:text-green-600'
                               }`}
                           >
                             {subTask.status === 'completed' ? (
@@ -1007,8 +1007,8 @@ export function TaskDetailPage() {
                           <div className="flex-1">
                             <p
                               className={`font-medium ${subTask.status === 'completed'
-                                  ? 'line-through text-muted-foreground'
-                                  : 'text-foreground'
+                                ? 'line-through text-muted-foreground'
+                                : 'text-foreground'
                                 }`}
                             >
                               {subTask.title}
