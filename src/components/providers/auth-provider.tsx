@@ -15,6 +15,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, username?: string) => Promise<any>
   signOut: () => Promise<void>
   checkPermission: (permission: keyof RoleBasedAccess) => boolean
+  loginAsGuest: () => Promise<void>
+  isGuest: boolean
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -31,8 +33,10 @@ const AuthContext = createContext<AuthContextType>({
   },
   signIn: async () => null,
   signUp: async () => null,
-  signOut: async () => {},
+  signOut: async () => { },
   checkPermission: () => false,
+  loginAsGuest: async () => { },
+  isGuest: false,
 })
 
 export const useAuth = () => {
@@ -48,14 +52,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [userRole, setUserRole] = useState<'user' | 'admin' | null>(null)
-  
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-  
+
   // Add console logs to debug environment variables
   console.log('Supabase URL:', supabaseUrl)
   console.log('Supabase Key exists:', !!supabaseAnonKey)
-  
+
   // Use the centralized Supabase client from lib/supabase.ts
   // The client will throw an error if environment variables are missing
   // so we can proceed with guest mode if needed
@@ -70,6 +74,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         if (!supabase) {
           console.log('No Supabase client - proceeding with guest mode')
+          // Check for persisted guest session
+          if (localStorage.getItem('pitstop_guest_mode') === 'true') {
+            await loginAsGuest()
+          }
+          setLoading(false)
+          return
+        }
+
+        // Check for persisted guest session first
+        if (typeof window !== 'undefined' && localStorage.getItem('pitstop_guest_mode') === 'true') {
+          await loginAsGuest()
           setLoading(false)
           return
         }
@@ -148,9 +163,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) {
       throw new Error('Authentication service is not available. Please check your internet connection and try again.')
     }
-    
+
     let loginIdentifier = emailOrUsername
-    
+
     // Check if the input looks like a username (contains @ means it's an email)
     if (!emailOrUsername.includes('@')) {
       // If it's a username, try to find the associated email
@@ -159,12 +174,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Since we don't have a database query function yet, we'll handle this on the server side
       loginIdentifier = emailOrUsername // Supabase supports username login directly
     }
-    
-    const { data, error } = await supabase.auth.signInWithPassword({ 
-      email: loginIdentifier, 
-      password 
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: loginIdentifier,
+      password
     })
-    
+
     if (error) {
       // Provide user-friendly error messages
       if (error.message.includes('Invalid login credentials')) {
@@ -184,19 +199,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) {
       throw new Error('Authentication service is not available. Please check your internet connection and try again.')
     }
-    
-    const { data, error } = await supabase.auth.signUp({ 
-      email, 
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `${window.location.origin}/public`,
         data: {
           username: username || email.split('@')[0], // Use provided username or default from email
           full_name: username || email.split('@')[0]
         }
       }
     })
-    
+
     if (error) {
       // Provide user-friendly error messages
       if (error.message.includes('User already registered')) {
@@ -225,6 +240,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserRole(null)
   }
 
+  const loginAsGuest = async () => {
+    const guestUser: User = {
+      id: 'guest-user',
+      app_metadata: { provider: 'guest' },
+      user_metadata: { full_name: 'Guest User' },
+      aud: 'authenticated',
+      created_at: new Date().toISOString(),
+    }
+
+    // Persist guest session
+    localStorage.setItem('pitstop_guest_mode', 'true')
+
+    setUser(guestUser)
+    setSession({
+      access_token: 'guest-token',
+      refresh_token: 'guest-refresh-token',
+      expires_in: 3600,
+      token_type: 'bearer',
+      user: guestUser
+    })
+    setUserRole('user')
+  }
+
   const value = {
     user,
     session,
@@ -235,6 +273,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp,
     signOut,
     checkPermission,
+    loginAsGuest,
+    isGuest: user?.id === 'guest-user'
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

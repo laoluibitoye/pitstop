@@ -135,8 +135,69 @@ export function DashboardContent() {
         // const { data } = await db.getTasks({ search: searchQuery, ...filters })
         // setTasks(data || [])
         
-        // Mock data for now
-        setTasks([])
+        // Sample tasks for testing
+        const sampleTasks: Task[] = [
+          {
+            id: 'task_1',
+            title: 'Complete Dashboard Redesign',
+            description: 'Implement the new task card layout with improved UX and better visual hierarchy. Focus on clean 3-section design.',
+            status: 'ongoing',
+            priority: 'high',
+            created_by: 'user_1',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            position: 0,
+            visibility: 'public',
+            due_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
+            tags: [
+              { id: 'tag_1', name: 'dashboard', color: '#3b82f6', user_id: 'user_1', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+              { id: 'tag_2', name: 'redesign', color: '#10b981', user_id: 'user_1', created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+            ],
+            sub_tasks: [
+              { id: 'subtask_1', task_id: 'task_1', title: 'Update task card layout', status: 'completed', position: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+              { id: 'subtask_2', task_id: 'task_1', title: 'Test new design', status: 'ongoing', position: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+            ],
+            comments: [
+              { id: 'comment_1', task_id: 'task_1', user_id: 'user_2', content: 'Looks great! The new layout is much cleaner.', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), user: { id: 'user_2', email: 'user2@example.com', full_name: 'User Two', role: 'user' as const, created_at: new Date().toISOString(), updated_at: new Date().toISOString() } }
+            ]
+          },
+          {
+            id: 'task_2',
+            title: 'Fix Browser Caching Issues',
+            description: 'Resolve browser caching that prevents users from seeing updated task card designs. Implement proper cache busting.',
+            status: 'completed',
+            priority: 'urgent',
+            created_by: 'user_1',
+            created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+            updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+            completed_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+            position: 1,
+            visibility: 'private',
+            due_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+            tags: [
+              { id: 'tag_3', name: 'bugfix', color: '#ef4444', user_id: 'user_1', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+              { id: 'tag_4', name: 'performance', color: '#f59e0b', user_id: 'user_1', created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+            ]
+          },
+          {
+            id: 'task_3',
+            title: 'Improve Task Creation UX',
+            description: 'Make task description required and improve the overall task creation flow. Add better validation and user feedback.',
+            status: 'ongoing',
+            priority: 'medium',
+            created_by: 'user_2',
+            created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+            updated_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+            position: 2,
+            visibility: 'public',
+            due_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days from now
+            tags: [
+              { id: 'tag_5', name: 'ux', color: '#8b5cf6', user_id: 'user_2', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+              { id: 'tag_6', name: 'improvement', color: '#06b6d4', user_id: 'user_2', created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+            ]
+          }
+        ]
+        setTasks(sampleTasks)
       }
     } catch (error) {
       console.error('Error loading tasks:', error)

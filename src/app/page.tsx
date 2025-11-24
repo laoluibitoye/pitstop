@@ -17,11 +17,12 @@ import {
 } from 'lucide-react'
 import { SignInButton } from '@/components/auth/sign-in-button'
 import { SignUpButton } from '@/components/auth/sign-up-button'
-import { GuestModeButton } from '@/components/guest/guest-mode-button'
+import { useAuth } from '@/components/providers/auth-provider'
 import { useState } from 'react'
 
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { user } = useAuth()
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
@@ -49,8 +50,19 @@ export default function Home() {
 
             {/* Desktop Auth Buttons */}
             <div className="hidden md:flex space-x-4">
-              <SignInButton />
-              <SignUpButton />
+              {user ? (
+                <button
+                  onClick={() => window.location.href = '/public'}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 text-lg font-semibold rounded-xl flex items-center justify-center transition-all"
+                >
+                  My Tasks
+                </button>
+              ) : (
+                <>
+                  <SignInButton />
+                  <SignUpButton />
+                </>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -105,8 +117,22 @@ export default function Home() {
 
                 {/* Mobile Auth Buttons */}
                 <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <SignInButton className="mobile-menu-button-secondary" />
-                  <SignUpButton className="mobile-menu-button-primary" />
+                  {user ? (
+                    <button
+                      onClick={() => {
+                        window.location.href = '/public'
+                        setMobileMenuOpen(false)
+                      }}
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 text-lg font-semibold rounded-xl flex items-center justify-center transition-all"
+                    >
+                      My Tasks
+                    </button>
+                  ) : (
+                    <>
+                      <SignInButton className="mobile-menu-button-secondary" />
+                      <SignUpButton className="mobile-menu-button-primary" />
+                    </>
+                  )}
                   <div className="text-center">
                     <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs font-semibold rounded-full">
                       100% FREE
@@ -142,7 +168,7 @@ export default function Home() {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
               <SignUpButton className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-4 text-lg font-semibold rounded-xl flex items-center justify-center transform hover:scale-105 transition-all" />
-              <GuestModeButton className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-blue-600 px-8 py-4 text-lg font-semibold rounded-xl flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-all" />
+              <SignUpButton className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-blue-600 px-8 py-4 text-lg font-semibold rounded-xl flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-all" />
             </div>
 
             <div className="flex justify-center items-center space-x-8 text-sm text-gray-600 dark:text-gray-300">

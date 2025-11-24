@@ -13,7 +13,7 @@ export function SignInButton({ className }: { className?: string }) {
 
   const handleSignIn = async () => {
     if (user) {
-      router.push('/dashboard')
+      router.push('/public')
       return
     }
 

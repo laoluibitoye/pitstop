@@ -21,9 +21,15 @@ import {
   TrendingUp,
   ExternalLink,
   Globe,
-  Lock
+  Lock,
+  Share2,
+  Eye,
+  Heart
 } from 'lucide-react'
 import { Task, TaskWithMetrics, ViewModePreferences } from '@/types'
+import { PrivacyControls } from '@/components/tasks/privacy-controls'
+import { ShareModal } from '@/components/tasks/share-modal'
+import { useAuth } from '@/components/providers/auth-provider'
 
 interface EnhancedTaskListProps {
   tasks: Task[]
@@ -40,71 +46,31 @@ interface TaskItemProps {
   viewMode: 'grid' | 'list'
   isGuestMode?: boolean
   router: any
+  user: any
 }
 
-const generateSampleMetrics = (taskId: string, index: number): TaskWithMetrics['metrics'] => {
-  const commentCount = Math.floor(Math.random() * 10) + (index % 3 === 0 ? 5 : 0)
-  const totalSubTasks = Math.floor(Math.random() * 8) + 1
-  const completedSubTasks = Math.floor(Math.random() * totalSubTasks)
-  const participantCount = Math.floor(Math.random() * 5) + 1
-
-  return {
-    commentCount,
-    participantCount,
-    subTaskProgress: {
-      completed: completedSubTasks,
-      total: totalSubTasks
-    },
-    activeParticipants: Array.from({ length: Math.min(participantCount, 3) }, (_, i) => ({
-      id: `participant_${taskId}_${i}`,
-      user_id: `user_${i + 1}`,
-      role: ['assignee', 'commenter', 'editor'][i % 3] as 'assignee' | 'commenter' | 'editor',
-      isActive: i === 0 || Math.random() > 0.3,
-      lastSeen: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-      user: {
-        id: `user_${i + 1}`,
-        email: `user${i + 1}@example.com`,
-        full_name: `User ${i + 1}`,
-        avatar_url: undefined,
-        role: 'user' as const,
-        created_at: '2024-01-01T00:00:00.000Z',
-        updated_at: '2024-01-01T00:00:00.000Z'
-      }
-    })),
-    lastActivity: new Date(Date.now() - Math.random() * 86400000).toISOString()
-  }
-}
-
-const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode, isGuestMode = false, router }: TaskItemProps) => {
+const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode, isGuestMode = false, router, user }: TaskItemProps) => {
   const [isExpanded, setIsExpanded] = useState(false)
   const [showCommentPreview, setShowCommentPreview] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'text-green-600 bg-green-100 dark:bg-green-900/20'
-      case 'ongoing': return 'text-blue-600 bg-blue-100 dark:bg-blue-900/20'
-      case 'delayed': return 'text-orange-600 bg-orange-100 dark:bg-orange-900/20'
-      case 'cancelled': return 'text-red-600 bg-red-100 dark:bg-red-900/20'
-      default: return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20'
+      case 'completed': return 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+      case 'ongoing': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+      case 'delayed': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400'
+      case 'cancelled': return 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+      default: return 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400'
     }
   }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'text-red-600'
-      case 'high': return 'text-orange-600'
-      case 'medium': return 'text-blue-600'
-      case 'low': return 'text-green-600'
-      default: return 'text-gray-600'
-    }
-  }
-
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'assignee': return <UserCheck className="h-3 w-3" />
-      case 'editor': return <Edit className="h-3 w-3" />
-      case 'commenter': return <MessageSquare className="h-3 w-3" />
-      default: return <User className="h-3 w-3" />
+      case 'urgent': return 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+      case 'high': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400'
+      case 'medium': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+      case 'low': return 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+      default: return 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400'
     }
   }
 
@@ -115,7 +81,7 @@ const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode, isGuestMode = fa
 
   const handleTaskClick = (e: React.MouseEvent) => {
     // Don't navigate if clicking on action buttons
-    if ((e.target as HTMLElement).closest('button')) {
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('.action-area')) {
       return
     }
     router.push(`/tasks/${task.id}?view=${viewMode}`)
@@ -129,154 +95,90 @@ const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode, isGuestMode = fa
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
-        className="neo-card p-6 bg-white/50 dark:bg-dark-card/50 hover:scale-105 transition-transform duration-200 cursor-pointer"
+        className="bg-card border border-border rounded-lg p-6 hover:shadow-lg transition-all duration-200 group cursor-pointer"
         onClick={handleTaskClick}
       >
+        {/* Header */}
         <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <h3 className="font-semibold text-primary-900 dark:text-dark-text text-lg leading-tight">
-              {task.title}
-            </h3>
-            <div className="flex items-center space-x-1 mt-1">
-              <ExternalLink className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Click to view details</span>
+          <div className="flex items-center space-x-3">
+            {/* User Avatar */}
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+              {user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U'}
+            </div>
+            <div>
+              <p className="font-medium text-foreground">
+                {user?.user_metadata?.full_name || 'You'}
+              </p>
+              <p className="text-xs text-muted-foreground flex items-center">
+                <Clock className="h-3 w-3 mr-1" />
+                {new Date(task.created_at).toLocaleDateString()}
+              </p>
             </div>
           </div>
-          <div className="flex space-x-1">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onDeleteTask(task.id)
-              }}
-              className="p-1 text-red-500 hover:text-red-600 transition-colors"
-              title="Delete task"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+
+          <div className="flex items-center space-x-2">
+            {/* Status and Priority */}
+            <div className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
+              {task.status}
+            </div>
+
+            <div className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>
+              {task.priority}
+            </div>
           </div>
         </div>
 
+        {/* Content */}
+        <h3 className="font-semibold text-foreground mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+          {task.title}
+        </h3>
+
         {task.description && (
-          <p className="text-primary-600 dark:text-primary-300 mb-4 text-sm line-clamp-2">
+          <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
             {task.description}
           </p>
         )}
 
-        {/* Metrics Row */}
+        {/* Stats & Metrics */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            {/* Comments Indicator */}
-            <div
-              className="relative flex items-center space-x-1"
-              onMouseEnter={() => setShowCommentPreview(true)}
-              onMouseLeave={() => setShowCommentPreview(false)}
-            >
-              <MessageCircle className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs font-medium text-muted-foreground">
-                {task.metrics.commentCount}
-              </span>
-              
-              {/* Comment Preview Tooltip */}
-              <AnimatePresence>
-                {showCommentPreview && task.metrics.commentCount > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className="absolute top-full left-0 mt-2 p-3 bg-background border border-border rounded-lg shadow-lg z-10 w-64"
-                  >
-                    <div className="text-sm font-medium mb-2">Recent Comments</div>
-                    <div className="space-y-1">
-                      {Array.from({ length: Math.min(task.metrics.commentCount, 3) }).map((_, i) => (
-                        <div key={i} className="text-xs text-muted-foreground p-2 bg-muted/50 rounded">
-                          Comment preview {i + 1}...
-                        </div>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Participants Counter */}
+          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
             <div className="flex items-center space-x-1">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs font-medium text-muted-foreground">
-                {task.metrics.participantCount}
-              </span>
+              <MessageCircle className="h-4 w-4" />
+              <span>{task.metrics.commentCount}</span>
             </div>
-          </div>
-        </div>
-
-        {/* Sub-task Progress */}
-        {subTaskProgress.total > 0 && (
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-muted-foreground">
-                Sub-tasks
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {subTaskProgress.completed}/{subTaskProgress.total}
-              </span>
+            <div className="flex items-center space-x-1">
+              <Users className="h-4 w-4" />
+              <span>{task.metrics.participantCount}</span>
             </div>
-            <div className="w-full bg-muted rounded-full h-2">
-              <motion.div
-                className="bg-primary h-2 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPercentage}%` }}
-                transition={{ duration: 0.5 }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Participant Avatars */}
-        <div className="mb-4">
-          <div className="flex -space-x-2">
-            {task.metrics.activeParticipants.slice(0, 3).map((participant, index) => (
-              <div
-                key={participant.id}
-                className={`w-6 h-6 rounded-full border-2 border-background flex items-center justify-center text-xs font-medium ${
-                  participant.isActive 
-                    ? 'bg-green-500 text-white' 
-                    : 'bg-muted text-muted-foreground'
-                }`}
-                title={`${participant.user?.full_name} (${participant.role})`}
-              >
-                {participant.user?.full_name?.[0] || 'U'}
-              </div>
-            ))}
-            {task.metrics.participantCount > 3 && (
-              <div className="w-6 h-6 rounded-full border-2 border-background bg-muted flex items-center justify-center text-xs font-medium">
-                +{task.metrics.participantCount - 3}
+            {subTaskProgress.total > 0 && (
+              <div className="flex items-center space-x-1" title={`Subtasks: ${subTaskProgress.completed}/${subTaskProgress.total}`}>
+                <CheckCircle className="h-4 w-4" />
+                <span>{subTaskProgress.completed}/{subTaskProgress.total}</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Status, Priority, and Visibility */}
-        <div className="flex items-center justify-between">
+        {/* Actions Footer */}
+        <div className="flex items-center justify-between pt-4 border-t border-border action-area">
           <div className="flex items-center space-x-2">
-            {/* Visibility Indicator */}
-            <div className="flex items-center space-x-1">
-              {task.visibility === 'public' ? (
-                <Globe className="h-3 w-3 text-blue-500" />
-              ) : (
-                <Lock className="h-3 w-3 text-orange-500" />
-              )}
-              <span className="text-xs text-muted-foreground">
-                {task.visibility}
-              </span>
-            </div>
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
-              {task.status}
-            </span>
+            <PrivacyControls
+              visibility={task.visibility}
+              onVisibilityChange={(visibility) => onUpdateTask(task.id, { visibility })}
+            />
           </div>
+
           <div className="flex items-center space-x-2">
-            <span className={`text-xs font-medium ${getPriorityColor(task.priority)}`}>
-              {task.priority}
-            </span>
-            {/* Delete button with permission check */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowShareModal(true)
+              }}
+              className="p-2 text-muted-foreground hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              title="Share task"
+            >
+              <Share2 className="h-4 w-4" />
+            </button>
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -286,11 +188,10 @@ const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode, isGuestMode = fa
                 }
                 onDeleteTask(task.id)
               }}
-              className={`p-1 transition-colors ${
-                isGuestMode && task.created_by !== 'guest'
-                  ? 'text-gray-300 cursor-not-allowed'
-                  : 'text-red-500 hover:text-red-600'
-              }`}
+              className={`p-2 rounded-lg transition-colors ${isGuestMode && task.created_by !== 'guest'
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
+                }`}
               title={
                 isGuestMode && task.created_by !== 'guest'
                   ? "Guests can only delete their own tasks"
@@ -301,6 +202,14 @@ const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode, isGuestMode = fa
             </button>
           </div>
         </div>
+
+        {/* Share Modal */}
+        <ShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          taskId={task.id}
+          taskTitle={task.title}
+        />
       </motion.div>
     )
   }
@@ -312,31 +221,38 @@ const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode, isGuestMode = fa
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
-      className="neo-card p-4 bg-white/50 dark:bg-dark-card/50 hover:shadow-lg transition-shadow duration-200"
+      className="bg-card border border-border rounded-lg p-4 hover:shadow-lg transition-all duration-200 group cursor-pointer"
+      onClick={handleTaskClick}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4 flex-1">
+          {/* User Avatar */}
+          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
+            {user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U'}
+          </div>
+
           <button
-            onClick={() => onUpdateTask(task.id, { status: task.status === 'completed' ? 'ongoing' : 'completed' })}
-            className={`p-1 rounded-full transition-colors ${
-              task.status === 'completed' ? 'text-green-600' : 'text-gray-400 hover:text-green-600'
-            }`}
+            onClick={(e) => {
+              e.stopPropagation()
+              onUpdateTask(task.id, { status: task.status === 'completed' ? 'ongoing' : 'completed' })
+            }}
+            className={`p-1 rounded-full transition-colors action-area ${task.status === 'completed' ? 'text-green-600' : 'text-gray-400 hover:text-green-600'
+              }`}
           >
             <CheckCircle className="h-5 w-5" />
           </button>
-          
+
           <div className="flex-1 min-w-0">
-            <h3 className={`font-semibold truncate ${
-              task.status === 'completed' ? 'line-through text-gray-500' : 'text-primary-900 dark:text-dark-text'
-            }`}>
+            <h3 className={`font-semibold truncate ${task.status === 'completed' ? 'line-through text-gray-500' : 'text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors'
+              }`}>
               {task.title}
             </h3>
             {task.description && (
-              <p className="text-sm text-primary-600 dark:text-primary-300 truncate">
+              <p className="text-sm text-muted-foreground truncate">
                 {task.description}
               </p>
             )}
-            
+
             {/* Enhanced Metrics Row */}
             <div className="flex items-center space-x-4 mt-2">
               {/* Comments */}
@@ -344,13 +260,13 @@ const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode, isGuestMode = fa
                 <MessageCircle className="h-3 w-3 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">{task.metrics.commentCount}</span>
               </div>
-              
+
               {/* Participants */}
               <div className="flex items-center space-x-1">
                 <Users className="h-3 w-3 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">{task.metrics.participantCount}</span>
               </div>
-              
+
               {/* Sub-task Progress */}
               {subTaskProgress.total > 0 && (
                 <div className="flex items-center space-x-1">
@@ -364,73 +280,49 @@ const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode, isGuestMode = fa
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 action-area">
           {/* Status and Priority */}
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
             {task.status}
           </span>
-          <span className={`text-xs font-medium ${getPriorityColor(task.priority)}`}>
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>
             {task.priority}
           </span>
-          
-          {/* Sub-task Progress Bar (if applicable) */}
-          {subTaskProgress.total > 0 && (
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="p-1 hover:bg-muted rounded"
-            >
-              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </button>
-          )}
-          
+
+          <PrivacyControls
+            visibility={task.visibility}
+            onVisibilityChange={(visibility) => onUpdateTask(task.id, { visibility })}
+          />
+
           <button
-            onClick={() => onDeleteTask(task.id)}
-            className="p-1 text-red-500 hover:text-red-600 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation()
+              setShowShareModal(true)
+            }}
+            className="p-1 text-muted-foreground hover:text-blue-500 transition-colors"
+          >
+            <Share2 className="h-4 w-4" />
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onDeleteTask(task.id)
+            }}
+            className="p-1 text-muted-foreground hover:text-red-500 transition-colors"
           >
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      {/* Expandable Sub-tasks */}
-      <AnimatePresence>
-        {isExpanded && subTaskProgress.total > 0 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mt-4 pt-4 border-t border-border"
-          >
-            <div className="space-y-2">
-              <div className="text-sm font-medium text-muted-foreground mb-2">
-                Sub-tasks ({subTaskProgress.completed}/{subTaskProgress.total})
-              </div>
-              <div className="w-full bg-muted rounded-full h-2 mb-3">
-                <motion.div
-                  className="bg-primary h-2 rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progressPercentage}%` }}
-                  transition={{ duration: 0.5 }}
-                />
-              </div>
-              {Array.from({ length: subTaskProgress.total }).map((_, index) => (
-                <div key={index} className="flex items-center space-x-2 text-sm">
-                  <Circle 
-                    className={`h-3 w-3 ${
-                      index < subTaskProgress.completed 
-                        ? 'text-green-600 fill-current' 
-                        : 'text-muted-foreground'
-                    }`} 
-                  />
-                  <span className={index < subTaskProgress.completed ? 'line-through text-muted-foreground' : ''}>
-                    Sub-task {index + 1}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        taskId={task.id}
+        taskTitle={task.title}
+      />
     </motion.div>
   )
 }
@@ -443,6 +335,7 @@ export function EnhancedTaskList({
   isGuestMode = false
 }: EnhancedTaskListProps) {
   const router = useRouter()
+  const { user } = useAuth()
 
   // Load view mode preference (always grid)
   useEffect(() => {
@@ -451,12 +344,54 @@ export function EnhancedTaskList({
     }
   }, [])
 
-  // Enhance tasks with sample metrics data
+  // Calculate real metrics from actual task data
   const tasksWithMetrics: TaskWithMetrics[] = useMemo(() => {
-    return tasks.map((task, index) => ({
-      ...task,
-      metrics: generateSampleMetrics(task.id, index)
-    }))
+    return tasks.map((task) => {
+      // Calculate real metrics from actual data
+      const realCommentCount = task.comments?.length || 0
+      const realSubTasks = task.sub_tasks || []
+      const completedSubTasks = realSubTasks.filter(st => st.status === 'completed').length
+      const totalSubTasks = realSubTasks.length
+
+      // Calculate real participant count
+      const uniqueParticipants = new Set()
+      if (task.created_by) uniqueParticipants.add(task.created_by)
+      if (task.assigned_to) uniqueParticipants.add(task.assigned_to)
+      if (task.comments) {
+        task.comments.forEach(comment => {
+          if (comment.user_id) uniqueParticipants.add(comment.user_id)
+        })
+      }
+
+      return {
+        ...task,
+        metrics: {
+          commentCount: realCommentCount,
+          participantCount: uniqueParticipants.size,
+          subTaskProgress: {
+            completed: completedSubTasks,
+            total: totalSubTasks
+          },
+          activeParticipants: Array.from(uniqueParticipants).slice(0, 3).map((userId, index) => ({
+            id: `participant_${userId}_${index}`,
+            user_id: String(userId),
+            role: ['assignee', 'commenter', 'editor'][index % 3] as 'assignee' | 'commenter' | 'editor',
+            isActive: index === 0 || Math.random() > 0.3, // Keep some activity simulation
+            lastSeen: new Date(Date.now() - Math.random() * 3600000).toISOString(),
+            user: {
+              id: String(userId),
+              email: `${userId}@example.com`,
+              full_name: `User ${index + 1}`,
+              avatar_url: undefined,
+              role: 'user' as const,
+              created_at: '2024-01-01T00:00:00.000Z',
+              updated_at: '2024-01-01T00:00:00.000Z'
+            }
+          })),
+          lastActivity: task.updated_at
+        }
+      }
+    })
   }, [tasks])
 
   const filteredTasks = tasksWithMetrics.filter(task =>
@@ -467,10 +402,10 @@ export function EnhancedTaskList({
   if (filteredTasks.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="neo-card p-8 bg-white/50 dark:bg-dark-card/50">
-          <Activity className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-primary-900 dark:text-dark-text mb-2">No tasks yet</h3>
-          <p className="text-primary-600 dark:text-primary-300">
+        <div className="bg-card border border-border rounded-lg p-8">
+          <Activity className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-foreground mb-2">No tasks yet</h3>
+          <p className="text-muted-foreground">
             {searchQuery ? 'No tasks match your search' : 'Create your first task to get started'}
           </p>
         </div>
@@ -501,6 +436,7 @@ export function EnhancedTaskList({
             viewMode="grid"
             isGuestMode={isGuestMode}
             router={router}
+            user={user}
           />
         ))}
       </motion.div>

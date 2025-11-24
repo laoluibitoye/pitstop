@@ -11,7 +11,7 @@ export default function SignInPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const { signIn } = useAuth()
+  const { signIn, loginAsGuest } = useAuth()
   const router = useRouter()
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -102,6 +102,39 @@ export default function SignInPage() {
               Sign up
             </button>
           </p>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-gray-300 dark:border-gray-600" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white dark:bg-dark-card px-2 text-muted-foreground">
+                Or
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={async () => {
+              setLoading(true)
+              try {
+                await loginAsGuest()
+                toast.success('Continued as guest!')
+                router.push('/dashboard')
+              } catch (error) {
+                toast.error('Failed to continue as guest')
+              } finally {
+                setLoading(false)
+              }
+            }}
+            className="w-full py-3 border-2 border-primary-200 dark:border-primary-800 rounded-xl font-semibold text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/50 transition-colors flex items-center justify-center space-x-2"
+          >
+            <EyeOff className="h-4 w-4" />
+            <span>Continue as Guest</span>
+          </button>
+
+          {/* Real implementation below */}
+
 
           <button
             onClick={() => router.push('/')}

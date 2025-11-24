@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import {
   ArrowLeft,
   Calendar,
@@ -15,61 +15,61 @@ import {
   Save,
   X,
   Users,
-  CheckSquare
+  CheckSquare,
+  Home,
+  Settings,
+  Search,
+  Grid,
+  List,
+  Moon,
+  Sun,
+  Menu,
+  LogOut,
+  Clock,
+  Flag,
+  Tag
 } from 'lucide-react'
 import { Task, TaskComment, SubTask } from '@/types'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useTheme } from 'next-themes'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ActiveUsers } from '@/components/ui/active-users'
+import { supabase } from '@/lib/supabase'
 
 export function TaskDetailPage() {
   const router = useRouter()
   const params = useParams()
-  const { user } = useAuth()
+  const searchParams = useSearchParams()
+  const { user, signOut } = useAuth()
   const { theme, setTheme } = useTheme()
   const [task, setTask] = useState<Task | null>(null)
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState('')
   const [editDescription, setEditDescription] = useState('')
-  const [isGuestMode, setIsGuestMode] = useState(false)
-  
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'overview' | 'subtasks' | 'comments'>('overview')
+
   // Comments state
   const [comments, setComments] = useState<TaskComment[]>([])
   const [newComment, setNewComment] = useState('')
   const [showCommentForm, setShowCommentForm] = useState(false)
-  
+
   // Sub-tasks state
   const [subTasks, setSubTasks] = useState<SubTask[]>([])
   const [newSubTaskTitle, setNewSubTaskTitle] = useState('')
   const [showSubTaskForm, setShowSubTaskForm] = useState(false)
 
   const taskId = params?.taskId as string
+  const isGuestMode = searchParams.get('mode') === 'guest'
 
   useEffect(() => {
     loadTask()
   }, [taskId])
 
-  useEffect(() => {
-    // Check if in guest mode
-    const urlParams = new URLSearchParams(window.location.search)
-    setIsGuestMode(urlParams.get('mode') === 'guest')
-    
-    // Also check localStorage for guest session
-    if (urlParams.get('mode') !== 'guest') {
-      const guestSession = localStorage.getItem('guest_session')
-      if (guestSession) {
-        setIsGuestMode(true)
-      }
-    }
-  }, [])
-
   const loadTask = async () => {
     setLoading(true)
     try {
       if (isGuestMode) {
-        // Load from localStorage for guest mode
         const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
         const foundTask = guestTasks.find((t: any) => t.id === taskId)
         if (foundTask) {
@@ -80,27 +80,76 @@ export function TaskDetailPage() {
           setSubTasks(foundTask.sub_tasks || [])
         }
       } else {
-        // Load from database for authenticated users
-        // For now, using mock data - replace with actual API call
-        const mockTask: Task = {
-          id: taskId,
-          title: 'Sample Task',
-          description: 'This is a sample task description',
-          status: 'ongoing' as const,
-          priority: 'medium' as const,
-          created_by: user?.id || 'user',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          position: 0,
-          visibility: 'private' as const,
-          comments: [],
-          sub_tasks: []
+        try {
+          const { data, error } = await supabase
+            .from('tasks')
+            .select(`
+              *,
+              created_user:profiles!tasks_created_by_fkey(
+                id,
+                email,
+                full_name,
+                username,
+                avatar_url
+              ),
+              assigned_user:profiles!tasks_assigned_to_fkey(
+                id,
+                email,
+                full_name,
+                username,
+                avatar_url
+              ),
+              category:categories(*)
+            `)
+            .eq('id', taskId)
+            .single()
+
+          if (error) throw error
+
+          if (data) {
+            setTask(data)
+            setEditTitle(data.title)
+            setEditDescription(data.description || '')
+
+            const { data: commentsData } = await supabase
+              .from('task_comments')
+              .select(`
+                *,
+                user:profiles(*)
+              `)
+              .eq('task_id', taskId)
+              .order('created_at', { ascending: true })
+
+            setComments(commentsData || [])
+
+            const { data: subTasksData } = await supabase
+              .from('sub_tasks')
+              .select('*')
+              .eq('task_id', taskId)
+              .order('position', { ascending: true })
+
+            setSubTasks(subTasksData || [])
+          }
+        } catch (dbError) {
+          console.error('Database error:', dbError)
+          const mockTask: Task = {
+            id: taskId,
+            title: 'Task Not Found',
+            description: 'Unable to load task details',
+            status: 'ongoing' as const,
+            priority: 'medium' as const,
+            created_by: user?.id || 'unknown',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            position: 0,
+            visibility: 'private' as const,
+            comments: [],
+            sub_tasks: []
+          }
+          setTask(mockTask)
+          setComments([])
+          setSubTasks([])
         }
-        setTask(mockTask)
-        setEditTitle(mockTask.title)
-        setEditDescription(mockTask.description || '')
-        setComments(mockTask.comments || [])
-        setSubTasks(mockTask.sub_tasks || [])
       }
     } catch (error) {
       console.error('Error loading task:', error)
@@ -109,32 +158,82 @@ export function TaskDetailPage() {
     }
   }
 
-  const saveTask = () => {
+  const saveTask = async () => {
     if (!task) return
-    
+
     const updatedTask = {
       ...task,
       title: editTitle,
       description: editDescription,
       updated_at: new Date().toISOString()
     }
-    
-    if (isGuestMode) {
-      // Update in localStorage
-      const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
-      const updatedTasks = guestTasks.map((t: any) => 
-        t.id === taskId ? { ...t, ...updatedTask } : t
-      )
-      localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+
+    try {
+      if (isGuestMode) {
+        const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
+        const updatedTasks = guestTasks.map((t: any) =>
+          t.id === taskId ? { ...t, ...updatedTask } : t
+        )
+        localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+      } else {
+        const { error } = await supabase
+          .from('tasks')
+          .update({
+            title: editTitle,
+            description: editDescription,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', taskId)
+
+        if (error) throw error
+      }
+
+      setTask(updatedTask)
+      setIsEditing(false)
+    } catch (error) {
+      console.error('Failed to save task:', error)
+      alert('Failed to save task. Please try again.')
     }
-    
-    setTask(updatedTask)
-    setIsEditing(false)
   }
 
-  const toggleTaskStatus = () => {
+  const toggleTaskVisibility = async (newVisibility: 'public' | 'private') => {
     if (!task) return
-    
+
+    const updatedTask = {
+      ...task,
+      visibility: newVisibility,
+      updated_at: new Date().toISOString()
+    }
+
+    try {
+      if (isGuestMode) {
+        const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
+        const updatedTasks = guestTasks.map((t: any) =>
+          t.id === taskId ? { ...t, visibility: newVisibility } : t
+        )
+        localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+      } else {
+        const { error } = await supabase
+          .from('tasks')
+          .update({
+            visibility: newVisibility,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', taskId)
+
+        if (error) throw error
+      }
+
+      setTask(updatedTask)
+    } catch (error) {
+      console.error('Failed to update task visibility:', error)
+      alert('Failed to update task visibility. Please try again.')
+    }
+  }
+
+  const toggleTaskStatus = async () => {
+    if (!task) return
+
     const newStatus: Task['status'] = task.status === 'completed' ? 'ongoing' : 'completed'
     const updatedTask: Task = {
       ...task,
@@ -142,23 +241,37 @@ export function TaskDetailPage() {
       completed_at: newStatus === 'completed' ? new Date().toISOString() : undefined,
       updated_at: new Date().toISOString()
     }
-    
-    if (isGuestMode) {
-      // Update in localStorage
-      const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
-      const updatedTasks = guestTasks.map((t: any) => 
-        t.id === taskId ? { ...t, ...updatedTask } : t
-      )
-      localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+
+    try {
+      if (isGuestMode) {
+        const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
+        const updatedTasks = guestTasks.map((t: any) =>
+          t.id === taskId ? { ...t, ...updatedTask } : t
+        )
+        localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+      } else {
+        const { error } = await supabase
+          .from('tasks')
+          .update({
+            status: newStatus,
+            completed_at: newStatus === 'completed' ? new Date().toISOString() : null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', taskId)
+
+        if (error) throw error
+      }
+
+      setTask(updatedTask)
+    } catch (error) {
+      console.error('Failed to update task status:', error)
+      alert('Failed to update task status. Please try again.')
     }
-    
-    setTask(updatedTask)
   }
 
-  // Comments functionality
-  const addComment = () => {
+  const addComment = async () => {
     if (!newComment.trim() || !task) return
-    
+
     const comment: TaskComment = {
       id: `comment_${Date.now()}`,
       task_id: taskId,
@@ -175,40 +288,54 @@ export function TaskDetailPage() {
         updated_at: new Date().toISOString()
       }
     }
-    
-    const updatedComments = [...comments, comment]
-    setComments(updatedComments)
-    setNewComment('')
-    setShowCommentForm(false)
-    
-    // Update task in localStorage
-    if (isGuestMode) {
-      const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
-      const updatedTasks = guestTasks.map((t: any) => 
-        t.id === taskId ? { ...t, comments: updatedComments } : t
-      )
-      localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+
+    try {
+      const updatedComments = [...comments, comment]
+
+      if (isGuestMode) {
+        const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
+        const updatedTasks = guestTasks.map((t: any) =>
+          t.id === taskId ? { ...t, comments: updatedComments } : t
+        )
+        localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+      } else {
+        const { error } = await supabase
+          .from('task_comments')
+          .insert({
+            task_id: taskId,
+            user_id: user?.id,
+            content: newComment.trim()
+          })
+
+        if (error) throw error
+        await loadTask()
+      }
+
+      setComments(updatedComments)
+      setNewComment('')
+      setShowCommentForm(false)
+    } catch (error) {
+      console.error('Failed to add comment:', error)
+      alert('Failed to add comment. Please try again.')
     }
   }
 
   const deleteComment = (commentId: string) => {
     const updatedComments = comments.filter(c => c.id !== commentId)
     setComments(updatedComments)
-    
-    // Update task in localStorage
+
     if (isGuestMode) {
       const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
-      const updatedTasks = guestTasks.map((t: any) => 
+      const updatedTasks = guestTasks.map((t: any) =>
         t.id === taskId ? { ...t, comments: updatedComments } : t
       )
       localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
     }
   }
 
-  // Sub-tasks functionality
-  const addSubTask = () => {
+  const addSubTask = async () => {
     if (!newSubTaskTitle.trim() || !task) return
-    
+
     const subTask: SubTask = {
       id: `subtask_${Date.now()}`,
       task_id: taskId,
@@ -218,26 +345,46 @@ export function TaskDetailPage() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
-    
-    const updatedSubTasks = [...subTasks, subTask]
-    setSubTasks(updatedSubTasks)
-    setNewSubTaskTitle('')
-    setShowSubTaskForm(false)
-    
-    // Update task in localStorage
-    if (isGuestMode) {
-      const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
-      const updatedTasks = guestTasks.map((t: any) => 
-        t.id === taskId ? { ...t, sub_tasks: updatedSubTasks } : t
-      )
-      localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+
+    try {
+      const updatedSubTasks = [...subTasks, subTask]
+
+      if (isGuestMode) {
+        const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
+        const updatedTasks = guestTasks.map((t: any) =>
+          t.id === taskId ? { ...t, sub_tasks: updatedSubTasks } : t
+        )
+        localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+      } else {
+        const { error } = await supabase
+          .from('sub_tasks')
+          .insert({
+            task_id: taskId,
+            title: newSubTaskTitle.trim(),
+            status: 'ongoing',
+            position: subTasks.length
+          })
+
+        if (error) throw error
+        await loadTask()
+      }
+
+      setSubTasks(updatedSubTasks)
+      setNewSubTaskTitle('')
+      setShowSubTaskForm(false)
+    } catch (error) {
+      console.error('Failed to add sub-task:', error)
+      alert('Failed to add sub-task. Please try again.')
     }
   }
 
-  const toggleSubTaskStatus = (subTaskId: string) => {
+  const toggleSubTaskStatus = async (subTaskId: string) => {
+    const subTask = subTasks.find(st => st.id === subTaskId)
+    if (!subTask) return
+
+    const newStatus: SubTask['status'] = subTask.status === 'completed' ? 'ongoing' : 'completed'
     const updatedSubTasks = subTasks.map(st => {
       if (st.id === subTaskId) {
-        const newStatus: SubTask['status'] = st.status === 'completed' ? 'ongoing' : 'completed'
         return {
           ...st,
           status: newStatus,
@@ -247,66 +394,96 @@ export function TaskDetailPage() {
       }
       return st
     })
-    setSubTasks(updatedSubTasks)
-    
-    // Update task in localStorage
-    if (isGuestMode) {
-      const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
-      const updatedTasks = guestTasks.map((t: any) => 
-        t.id === taskId ? { ...t, sub_tasks: updatedSubTasks } : t
-      )
-      localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+
+    try {
+      if (isGuestMode) {
+        const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
+        const updatedTasks = guestTasks.map((t: any) =>
+          t.id === taskId ? { ...t, sub_tasks: updatedSubTasks } : t
+        )
+        localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+      } else {
+        const { error } = await supabase
+          .from('sub_tasks')
+          .update({
+            status: newStatus,
+            completed_at: newStatus === 'completed' ? new Date().toISOString() : null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', subTaskId)
+
+        if (error) throw error
+      }
+
+      setSubTasks(updatedSubTasks)
+    } catch (error) {
+      console.error('Failed to update sub-task status:', error)
+      alert('Failed to update sub-task status. Please try again.')
     }
   }
 
   const deleteSubTask = (subTaskId: string) => {
     const updatedSubTasks = subTasks.filter(st => st.id !== subTaskId)
     setSubTasks(updatedSubTasks)
-    
-    // Update task in localStorage
+
     if (isGuestMode) {
       const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
-      const updatedTasks = guestTasks.map((t: any) => 
+      const updatedTasks = guestTasks.map((t: any) =>
         t.id === taskId ? { ...t, sub_tasks: updatedSubTasks } : t
       )
       localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'text-green-600 bg-green-100 dark:bg-green-900/20'
-      case 'ongoing': return 'text-blue-600 bg-blue-100 dark:bg-blue-900/20'
-      case 'delayed': return 'text-orange-600 bg-orange-100 dark:bg-orange-900/20'
-      case 'cancelled': return 'text-red-600 bg-red-100 dark:bg-red-900/20'
-      default: return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20'
-    }
+  const handleLogout = async () => {
+    await signOut()
+    router.push('/')
   }
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'text-red-600'
-      case 'high': return 'text-orange-600'
-      case 'medium': return 'text-blue-600'
-      case 'low': return 'text-green-600'
-      default: return 'text-gray-600'
-    }
+  const handleGoHome = () => {
+    router.push('/')
+  }
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark')
   }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
-      month: 'long',
+      month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     })
   }
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+      case 'ongoing': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+      case 'delayed': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
+      case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
+    }
+  }
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'urgent': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+      case 'high': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
+      case 'medium': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+      case 'low': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="loading-spinner">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
       </div>
     )
   }
@@ -315,169 +492,183 @@ export function TaskDetailPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-foreground mb-4">Task Not Found</h2>
+          <h1 className="text-2xl font-bold text-foreground mb-2">Task Not Found</h1>
+          <p className="text-muted-foreground mb-4">The task you're looking for doesn't exist.</p>
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.back()}
             className="btn-primary"
           >
-            Back to Dashboard
+            Go Back
           </button>
         </div>
       </div>
     )
   }
 
-  const completedSubTasks = subTasks.filter(st => st.status === 'completed').length
   const totalSubTasks = subTasks.length
+  const completedSubTasks = subTasks.filter(st => st.status === 'completed').length
   const subTaskProgress = totalSubTasks > 0 ? (completedSubTasks / totalSubTasks) * 100 : 0
-
-  const getParticipantCount = () => {
-    const uniqueUsers = new Set()
-    // Count unique comment authors
-    if (comments) {
-      comments.forEach((comment) => {
-        if (comment.user_id) uniqueUsers.add(comment.user_id)
-      })
-    }
-    // Count task creator
-    if (task?.created_by) uniqueUsers.add(task.created_by)
-    // Count assigned user
-    if (task?.assigned_to) uniqueUsers.add(task.assigned_to)
-    return uniqueUsers.size
-  }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header - Identical to Dashboard */}
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center space-x-4">
-            {/* Back to Dashboard Button */}
-            <button
-              onClick={() => {
-                // Preserve all current URL parameters when going back
-                const currentParams = new URLSearchParams(window.location.search)
-                const dashboardParams = new URLSearchParams()
-                
-                if (isGuestMode) {
-                  dashboardParams.set('mode', 'guest')
-                }
-                
-                // Add any other parameters that might be present
-                Array.from(currentParams.entries()).forEach(([key, value]) => {
-                  if (key !== 'taskId' && key !== 'mode') {
-                    dashboardParams.set(key, value)
-                  }
-                })
-                
-                const dashboardUrl = `/dashboard${dashboardParams.toString() ? '?' + dashboardParams.toString() : ''}`
-                router.push(dashboardUrl)
-              }}
-              className="p-1 rounded-md hover:bg-accent flex items-center mr-2"
-              title="Back to Dashboard"
+      {/* Modern Sidebar */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: -256 }}
+              animate={{ x: 0 }}
+              exit={{ x: -256 }}
+              className="fixed left-0 top-0 z-50 h-full w-64 border-r border-border bg-card"
             >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            
-            {/* PitStop Branding */}
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">P</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-semibold text-foreground">
-                  {task.title}
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  {isGuestMode ? 'Task Details • Guest Mode' : 'Task Details'}
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            {/* Theme Toggle - Exactly like dashboard */}
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 hover:bg-accent rounded-lg"
-              title="Toggle theme"
-            >
-              {theme === 'dark' ? (
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-sun h-4 w-4">
-                  <circle cx="12" cy="12" r="5"/>
-                  <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-moon h-4 w-4">
-                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
-                </svg>
-              )}
-            </button>
-            
-            {/* Active Users Indicator */}
-            <ActiveUsers className="hidden sm:flex" />
-
-            {/* User Menu - Exactly like dashboard */}
-            <div className="flex items-center space-x-2">
-              {isGuestMode ? (
-                <button
-                  onClick={() => router.push('/auth/signin')}
-                  className="btn-primary"
-                >
-                  <User className="h-4 w-4 mr-2" />
-                  Sign In
-                </button>
-              ) : user ? (
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-muted-foreground">
-                    {user.user_metadata?.full_name || user.email}
-                  </span>
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                    {user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
+              <div className="flex h-16 items-center justify-between border-b border-border px-6">
+                <div className="flex flex-col">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                      <span className="text-white font-bold text-sm">P</span>
+                    </div>
+                    <span className="text-lg font-semibold">PitStop</span>
+                  </div>
+                  <div className="ml-10 mt-1">
+                    <p className="text-sm text-muted-foreground">Task Details</p>
+                    <p className="text-xs text-muted-foreground">{task.title}</p>
                   </div>
                 </div>
-              ) : (
                 <button
-                  onClick={() => router.push('/auth/signin')}
-                  className="btn-ghost"
+                  onClick={() => setSidebarOpen(false)}
+                  className="p-2 hover:bg-accent rounded-lg lg:hidden"
                 >
-                  <User className="h-4 w-4" />
+                  <X className="h-4 w-4" />
                 </button>
-              )}
+              </div>
+              <nav className="p-4 space-y-2">
+                <button onClick={handleGoHome} className="nav-link w-full justify-start">
+                  <Home className="h-4 w-4" />
+                  <span>Home</span>
+                </button>
+                <button onClick={() => router.push('/dashboard')} className="nav-link w-full justify-start">
+                  <Grid className="h-4 w-4" />
+                  <span>Dashboard</span>
+                </button>
+                <button onClick={() => router.push('/settings')} className="nav-link w-full justify-start">
+                  <Settings className="h-4 w-4" />
+                  <span>Settings</span>
+                </button>
+              </nav>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content Area */}
+      <div className="flex flex-col flex-1 lg:pl-64">
+        {/* Modern Top Header */}
+        <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="p-2 hover:bg-accent rounded-lg lg:hidden"
+              >
+                <Menu className="h-4 w-4" />
+              </button>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => router.back()}
+                  className="p-2 hover:bg-accent rounded-lg transition-colors"
+                  title="Go back"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">P</span>
+                </div>
+                <div>
+                  <h1 className="text-xl font-semibold text-foreground">Task Details</h1>
+                  <p className="text-sm text-muted-foreground">{task.title}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={toggleTheme}
+                className="p-2 hover:bg-accent rounded-lg"
+                title="Toggle theme"
+              >
+                {theme === 'dark' ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+              </button>
+
+              <div className="flex items-center space-x-2">
+                {user ? (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-muted-foreground">
+                      {user.user_metadata?.full_name || user.email}
+                    </span>
+                    <button
+                      onClick={handleLogout}
+                      className="btn-ghost"
+                    >
+                      <LogOut className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => router.push('/auth/signin')}
+                    className="btn-ghost"
+                  >
+                    <User className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <main className="px-4 sm:px-6 lg:px-8 py-6">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Task Header */}
-          <div className="neo-card p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
+        {/* Main Task Content */}
+        <main className="flex-1 p-6 lg:pl-72">
+          <div className="max-w-7xl mx-auto space-y-6">
+
+            {/* Hero Task Card */}
+            <div className="relative overflow-hidden neo-card bg-white/50 dark:bg-dark-card/50 p-8">
+              <div className="absolute top-4 right-4">
+                <div className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
+                  {task.status}
+                </div>
+              </div>
+
+              <div className="space-y-6">
                 {isEditing ? (
                   <div className="space-y-4">
                     <input
                       type="text"
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
-                      className="neo-input text-2xl font-bold w-full"
+                      className="w-full text-3xl font-bold bg-transparent border-none outline-none text-foreground placeholder-muted-foreground"
                       placeholder="Task title"
                     />
                     <textarea
                       value={editDescription}
                       onChange={(e) => setEditDescription(e.target.value)}
-                      className="neo-input w-full h-24"
+                      className="w-full h-20 bg-transparent border border-border rounded-lg p-3 outline-none text-foreground placeholder-muted-foreground resize-none"
                       placeholder="Task description"
                     />
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={saveTask}
-                        className="btn-primary flex items-center space-x-2"
-                      >
-                        <Save className="h-4 w-4" />
-                        <span>Save</span>
+                    <div className="flex space-x-3">
+                      <button onClick={saveTask} className="btn-primary">
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Changes
                       </button>
                       <button
                         onClick={() => {
@@ -485,299 +676,492 @@ export function TaskDetailPage() {
                           setEditTitle(task.title)
                           setEditDescription(task.description || '')
                         }}
-                        className="btn-secondary flex items-center space-x-2"
+                        className="btn-secondary"
                       >
-                        <X className="h-4 w-4" />
-                        <span>Cancel</span>
+                        Cancel
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div>
-                    <h1 className="text-2xl font-bold text-foreground mb-2">
-                      {task.title}
-                    </h1>
-                    {task.description && (
-                      <p className="text-muted-foreground mb-4">{task.description}</p>
-                    )}
-                  </div>
+                  <>
+                    <div className="space-y-3">
+                      <h1 className="text-3xl font-bold text-foreground">{task.title}</h1>
+                      {task.description && (
+                        <p className="text-lg text-muted-foreground max-w-3xl">{task.description}</p>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        onClick={() => setIsEditing(true)}
+                        className="btn-secondary"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit Task
+                      </button>
+
+                      <button
+                        onClick={toggleTaskStatus}
+                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${task.status === 'completed'
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30'
+                            : 'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30'
+                          }`}
+                      >
+                        {task.status === 'completed' ? (
+                          <>
+                            <CheckCircle2 className="h-4 w-4" />
+                            <span>Mark Incomplete</span>
+                          </>
+                        ) : (
+                          <>
+                            <Circle className="h-4 w-4" />
+                            <span>Mark Complete</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => toggleTaskVisibility(task.visibility === 'public' ? 'private' : 'public')}
+                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${task.visibility === 'public'
+                            ? 'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30'
+                            : 'bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:hover:bg-orange-900/30'
+                          }`}
+                      >
+                        {task.visibility === 'public' ? (
+                          <>
+                            <Users className="h-4 w-4" />
+                            <span>Public</span>
+                          </>
+                        ) : (
+                          <>
+                            <User className="h-4 w-4" />
+                            <span>Private</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
-              
-              {!isEditing && (
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={toggleTaskStatus}
-                    className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                      task.status === 'completed'
-                        ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400'
-                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/20 dark:text-blue-400'
-                    }`}
-                  >
-                    {task.status === 'completed' ? (
-                      <CheckCircle2 className="h-4 w-4" />
-                    ) : (
-                      <Circle className="h-4 w-4" />
-                    )}
-                    <span>{task.status === 'completed' ? 'Completed' : 'Mark Complete'}</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="btn-secondary flex items-center space-x-2"
-                  >
-                    <Edit className="h-4 w-4" />
-                    <span>Edit</span>
-                  </button>
+            </div>
+
+            {/* Task Metrics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="neo-card p-6 text-center">
+                <div className="flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg mx-auto mb-3">
+                  <Flag className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">Priority</h3>
+                <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>
+                  {task.priority}
+                </div>
+              </div>
+
+              <div className="neo-card p-6 text-center">
+                <div className="flex items-center justify-center w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-lg mx-auto mb-3">
+                  <CheckSquare className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">Progress</h3>
+                <p className="text-lg font-bold text-foreground">{completedSubTasks}/{totalSubTasks}</p>
+              </div>
+
+              <div className="neo-card p-6 text-center">
+                <div className="flex items-center justify-center w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg mx-auto mb-3">
+                  <MessageCircle className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                </div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">Comments</h3>
+                <p className="text-lg font-bold text-foreground">{comments.length}</p>
+              </div>
+
+              {task.due_date && (
+                <div className="neo-card p-6 text-center">
+                  <div className="flex items-center justify-center w-12 h-12 bg-orange-100 dark:bg-orange-900/20 rounded-lg mx-auto mb-3">
+                    <Clock className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Due Date</h3>
+                  <p className="text-sm font-semibold text-foreground">{formatDate(task.due_date)}</p>
                 </div>
               )}
             </div>
 
-            {/* Task Metadata */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="flex items-center space-x-2">
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
-                  {task.status}
-                </span>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <span className={`text-sm font-medium ${getPriorityColor(task.priority)}`}>
-                  {task.priority} priority
-                </span>
-              </div>
-              
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                <span>Created {formatDate(task.created_at)}</span>
-              </div>
-              
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                <span>Modified {formatDate(task.updated_at)}</span>
-              </div>
-            </div>
-
-            {/* Task Metrics */}
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <Users className="h-4 w-4" />
-                <span>{getParticipantCount()} participants</span>
-              </div>
-              
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <MessageCircle className="h-4 w-4" />
-                <span>{comments.length} comments</span>
-              </div>
-              
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <CheckSquare className="h-4 w-4" />
-                <span>{completedSubTasks}/{totalSubTasks} sub-tasks</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Sub-tasks Section */}
-          <div className="neo-card p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-foreground flex items-center space-x-2">
-                <CheckCircle2 className="h-5 w-5" />
-                <span>Sub-tasks ({completedSubTasks}/{totalSubTasks})</span>
-              </h2>
-              
-              <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-primary transition-all duration-500"
-                  style={{ width: `${subTaskProgress}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {subTasks.map((subTask) => (
-                <div
-                  key={subTask.id}
-                  className="flex items-center space-x-3 p-3 bg-accent/20 rounded-lg"
-                >
-                  <button
-                    onClick={() => toggleSubTaskStatus(subTask.id)}
-                    className={`flex-shrink-0 ${
-                      subTask.status === 'completed'
-                        ? 'text-green-600 hover:text-green-700'
-                        : 'text-gray-400 hover:text-green-600'
-                    }`}
-                  >
-                    {subTask.status === 'completed' ? (
-                      <CheckCircle2 className="h-5 w-5" />
-                    ) : (
-                      <Circle className="h-5 w-5" />
-                    )}
-                  </button>
-                  
-                  <div className="flex-1">
-                    <p
-                      className={`text-sm ${
-                        subTask.status === 'completed'
-                          ? 'line-through text-muted-foreground'
-                          : 'text-foreground'
-                      }`}
-                    >
-                      {subTask.title}
-                    </p>
-                  </div>
-                  
-                  <button
-                    onClick={() => deleteSubTask(subTask.id)}
-                    className="p-1 text-red-500 hover:text-red-600 transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+            {/* Progress Bar */}
+            {totalSubTasks > 0 && (
+              <div className="neo-card p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-foreground">Sub-task Progress</h3>
+                  <span className="text-sm font-medium text-muted-foreground">{Math.round(subTaskProgress)}%</span>
                 </div>
-              ))}
-              
-              {showSubTaskForm ? (
-                <div className="flex items-center space-x-2 p-3 border-2 border-dashed border-border rounded-lg">
-                  <input
-                    type="text"
-                    value={newSubTaskTitle}
-                    onChange={(e) => setNewSubTaskTitle(e.target.value)}
-                    className="flex-1 neo-input"
-                    placeholder="New sub-task title"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        addSubTask()
-                      } else if (e.key === 'Escape') {
-                        setShowSubTaskForm(false)
-                        setNewSubTaskTitle('')
-                      }
-                    }}
-                    autoFocus
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                  <div
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
+                    style={{ width: `${subTaskProgress}%` }}
                   />
-                  <button
-                    onClick={addSubTask}
-                    className="btn-primary"
-                    disabled={!newSubTaskTitle.trim()}
-                  >
-                    Add
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowSubTaskForm(false)
-                      setNewSubTaskTitle('')
-                    }}
-                    className="btn-secondary"
-                  >
-                    Cancel
-                  </button>
                 </div>
-              ) : (
-                <button
-                  onClick={() => setShowSubTaskForm(true)}
-                  className="w-full p-3 border-2 border-dashed border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
-                >
-                  <Plus className="h-4 w-4 inline mr-2" />
-                  Add sub-task
-                </button>
-              )}
-            </div>
-          </div>
+              </div>
+            )}
 
-          {/* Comments Section */}
-          <div className="neo-card p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-foreground flex items-center space-x-2">
-                <MessageCircle className="h-5 w-5" />
-                <span>Comments ({comments.length})</span>
-              </h2>
-            </div>
-
-            <div className="space-y-4">
-              {comments.map((comment) => (
-                <div
-                  key={comment.id}
-                  className="flex items-start space-x-3 p-4 bg-accent/20 rounded-lg"
-                >
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                    {comment.user?.full_name?.charAt(0) || 'U'}
-                  </div>
-                  
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="text-sm font-medium text-foreground">
-                        {comment.user?.full_name || 'Unknown User'}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(comment.created_at)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{comment.content}</p>
-                  </div>
-                  
+            {/* Tabbed Content */}
+            <div className="neo-card">
+              <div className="border-b border-border">
+                <nav className="flex space-x-8 px-6" aria-label="Tabs">
                   <button
-                    onClick={() => deleteComment(comment.id)}
-                    className="p-1 text-red-500 hover:text-red-600 transition-colors"
+                    onClick={() => setActiveTab('overview')}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'overview'
+                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
+                      }`}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    Overview
                   </button>
-                </div>
-              ))}
-              
-              {showCommentForm ? (
-                <div className="p-4 border-2 border-dashed border-border rounded-lg">
-                  <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                      {user?.user_metadata?.full_name?.charAt(0) || 'U'}
+                  <button
+                    onClick={() => setActiveTab('subtasks')}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'subtasks'
+                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
+                      }`}
+                  >
+                    Sub-tasks ({totalSubTasks})
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('comments')}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'comments'
+                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
+                      }`}
+                  >
+                    Comments ({comments.length})
+                  </button>
+                </nav>
+              </div>
+
+              <div className="p-6">
+                {/* Overview Tab */}
+                {activeTab === 'overview' && (
+                  <div className="space-y-8">
+
+                    {/* Tags */}
+                    {task.tags && task.tags.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+                          <Tag className="h-5 w-5 mr-2" />
+                          Tags
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {task.tags.map((tag, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-3 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 text-sm rounded-full"
+                            >
+                              <Tag className="h-3 w-3 mr-1" />
+                              {typeof tag === 'string' ? tag : tag.name || 'Unknown Tag'}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Collaborators */}
+                    {(task.created_user || task.assigned_user) && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+                          <Users className="h-5 w-5 mr-2" />
+                          Collaborators
+                        </h3>
+                        <div className="space-y-3">
+                          {task.created_user && (
+                            <div className="flex items-center space-x-3">
+                              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                                {task.created_user.full_name?.charAt(0) || task.created_user.email?.charAt(0) || 'C'}
+                              </div>
+                              <div>
+                                <p className="font-medium text-foreground">
+                                  {task.created_user.full_name || task.created_user.email}
+                                </p>
+                                <p className="text-sm text-muted-foreground">Task Creator</p>
+                              </div>
+                            </div>
+                          )}
+                          {task.assigned_user && (
+                            <div className="flex items-center space-x-3">
+                              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center text-white font-semibold">
+                                {task.assigned_user.full_name?.charAt(0) || task.assigned_user.email?.charAt(0) || 'A'}
+                              </div>
+                              <div>
+                                <p className="font-medium text-foreground">
+                                  {task.assigned_user.full_name || task.assigned_user.email}
+                                </p>
+                                <p className="text-sm text-muted-foreground">Assigned To</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Timeline */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+                        <Calendar className="h-5 w-5 mr-2" />
+                        Timeline
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <div>
+                            <p className="font-medium text-foreground">Created</p>
+                            <p className="text-sm text-muted-foreground">{formatDate(task.created_at)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                          <div>
+                            <p className="font-medium text-foreground">Last Modified</p>
+                            <p className="text-sm text-muted-foreground">{formatDate(task.updated_at)}</p>
+                          </div>
+                        </div>
+                        {task.completed_at && (
+                          <div className="flex items-center space-x-3">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <div>
+                              <p className="font-medium text-foreground">Completed</p>
+                              <p className="text-sm text-muted-foreground">{formatDate(task.completed_at)}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex-1 space-y-2">
-                      <textarea
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        className="neo-input w-full h-20"
-                        placeholder="Add a comment..."
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && e.ctrlKey) {
-                            addComment()
-                          } else if (e.key === 'Escape') {
-                            setShowCommentForm(false)
-                            setNewComment('')
-                          }
-                        }}
-                        autoFocus
-                      />
-                      <div className="flex space-x-2">
+                  </div>
+                )}
+
+                {/* Sub-tasks Tab */}
+                {activeTab === 'subtasks' && (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-foreground">Sub-tasks</h3>
+                      <button
+                        onClick={() => setShowSubTaskForm(true)}
+                        className="btn-primary"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Sub-task
+                      </button>
+                    </div>
+
+                    {showSubTaskForm && (
+                      <div className="flex items-center space-x-2 p-4 border-2 border-dashed border-border rounded-lg">
+                        <input
+                          type="text"
+                          value={newSubTaskTitle}
+                          onChange={(e) => setNewSubTaskTitle(e.target.value)}
+                          className="flex-1 bg-transparent border-none outline-none"
+                          placeholder="New sub-task title"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              addSubTask()
+                            } else if (e.key === 'Escape') {
+                              setShowSubTaskForm(false)
+                              setNewSubTaskTitle('')
+                            }
+                          }}
+                          autoFocus
+                        />
                         <button
-                          onClick={addComment}
+                          onClick={addSubTask}
                           className="btn-primary"
-                          disabled={!newComment.trim()}
+                          disabled={!newSubTaskTitle.trim()}
                         >
-                          Add Comment
+                          Add
                         </button>
                         <button
                           onClick={() => {
-                            setShowCommentForm(false)
-                            setNewComment('')
+                            setShowSubTaskForm(false)
+                            setNewSubTaskTitle('')
                           }}
                           className="btn-secondary"
                         >
                           Cancel
                         </button>
                       </div>
+                    )}
+
+                    <div className="space-y-3">
+                      {subTasks.map((subTask) => (
+                        <div
+                          key={subTask.id}
+                          className="flex items-center space-x-4 p-4 bg-accent/20 rounded-lg hover:bg-accent/30 transition-colors"
+                        >
+                          <button
+                            onClick={() => toggleSubTaskStatus(subTask.id)}
+                            className={`flex-shrink-0 ${subTask.status === 'completed'
+                                ? 'text-green-600 hover:text-green-700'
+                                : 'text-gray-400 hover:text-green-600'
+                              }`}
+                          >
+                            {subTask.status === 'completed' ? (
+                              <CheckCircle2 className="h-5 w-5" />
+                            ) : (
+                              <Circle className="h-5 w-5" />
+                            )}
+                          </button>
+
+                          <div className="flex-1">
+                            <p
+                              className={`font-medium ${subTask.status === 'completed'
+                                  ? 'line-through text-muted-foreground'
+                                  : 'text-foreground'
+                                }`}
+                            >
+                              {subTask.title}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Created {formatDate(subTask.created_at)}
+                            </p>
+                          </div>
+
+                          <button
+                            onClick={() => deleteSubTask(subTask.id)}
+                            className="p-1 text-red-500 hover:text-red-600 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+
+                      {subTasks.length === 0 && (
+                        <div className="text-center py-12 text-muted-foreground">
+                          <CheckSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No sub-tasks yet. Add one to get started!</p>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowCommentForm(true)}
-                  className="w-full p-3 border-2 border-dashed border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
-                >
-                  <MessageCircle className="h-4 w-4 inline mr-2" />
-                  Add a comment
-                </button>
-              )}
+                )}
+
+                {/* Comments Tab */}
+                {activeTab === 'comments' && (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-foreground">Comments</h3>
+                      <button
+                        onClick={() => setShowCommentForm(true)}
+                        className="btn-primary"
+                      >
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        Add Comment
+                      </button>
+                    </div>
+
+                    {showCommentForm && (
+                      <div className="p-4 border-2 border-dashed border-border rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                            {user?.user_metadata?.full_name?.charAt(0) || 'U'}
+                          </div>
+                          <div className="flex-1 space-y-3">
+                            <textarea
+                              value={newComment}
+                              onChange={(e) => setNewComment(e.target.value)}
+                              className="w-full h-20 bg-transparent border border-border rounded-lg p-3 outline-none resize-none"
+                              placeholder="Add a comment..."
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && e.ctrlKey) {
+                                  addComment()
+                                } else if (e.key === 'Escape') {
+                                  setShowCommentForm(false)
+                                  setNewComment('')
+                                }
+                              }}
+                              autoFocus
+                            />
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={addComment}
+                                className="btn-primary"
+                                disabled={!newComment.trim()}
+                              >
+                                Add Comment
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowCommentForm(false)
+                                  setNewComment('')
+                                }}
+                                className="btn-secondary"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-4">
+                      {comments.map((comment) => (
+                        <div
+                          key={comment.id}
+                          className="flex items-start space-x-4 p-4 bg-accent/20 rounded-lg"
+                        >
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                            {comment.user?.full_name?.charAt(0) || 'U'}
+                          </div>
+
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <span className="font-medium text-foreground">
+                                {comment.user?.full_name || 'Unknown User'}
+                              </span>
+                              <span className="text-sm text-muted-foreground">
+                                {formatDate(comment.created_at)}
+                              </span>
+                            </div>
+                            <p className="text-muted-foreground">{comment.content}</p>
+                          </div>
+
+                          <button
+                            onClick={() => deleteComment(comment.id)}
+                            className="p-1 text-red-500 hover:text-red-600 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+
+                      {comments.length === 0 && (
+                        <div className="text-center py-12 text-muted-foreground">
+                          <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No comments yet. Start the conversation!</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </main>
+        </main>
+
+        {/* Footer */}
+        <footer className="border-t border-border bg-muted/20 py-6 mt-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">P</span>
+                </div>
+                <span className="text-lg font-semibold">PitStop</span>
+                <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                  100% FREE
+                </span>
+              </div>
+
+              <div className="text-sm text-muted-foreground text-center">
+                © 2025 PitStop. All rights reserved.
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
     </div>
   )
 }
