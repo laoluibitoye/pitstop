@@ -70,7 +70,7 @@ export function TaskDetailPage() {
     setLoading(true)
     try {
       if (isGuestMode) {
-        const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
+        const guestTasks = JSON.parse(localStorage.getItem('pitstop_guest_tasks') || '[]')
         const foundTask = guestTasks.find((t: any) => t.id === taskId)
         if (foundTask) {
           setTask(foundTask)
@@ -170,11 +170,11 @@ export function TaskDetailPage() {
 
     try {
       if (isGuestMode) {
-        const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
+        const guestTasks = JSON.parse(localStorage.getItem('pitstop_guest_tasks') || '[]')
         const updatedTasks = guestTasks.map((t: any) =>
           t.id === taskId ? { ...t, ...updatedTask } : t
         )
-        localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+        localStorage.setItem('pitstop_guest_tasks', JSON.stringify(updatedTasks))
       } else {
         const { error } = await supabase
           .from('tasks')
@@ -207,11 +207,11 @@ export function TaskDetailPage() {
 
     try {
       if (isGuestMode) {
-        const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
+        const guestTasks = JSON.parse(localStorage.getItem('pitstop_guest_tasks') || '[]')
         const updatedTasks = guestTasks.map((t: any) =>
           t.id === taskId ? { ...t, visibility: newVisibility } : t
         )
-        localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+        localStorage.setItem('pitstop_guest_tasks', JSON.stringify(updatedTasks))
       } else {
         const { error } = await supabase
           .from('tasks')
@@ -244,11 +244,11 @@ export function TaskDetailPage() {
 
     try {
       if (isGuestMode) {
-        const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
+        const guestTasks = JSON.parse(localStorage.getItem('pitstop_guest_tasks') || '[]')
         const updatedTasks = guestTasks.map((t: any) =>
           t.id === taskId ? { ...t, ...updatedTask } : t
         )
-        localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+        localStorage.setItem('pitstop_guest_tasks', JSON.stringify(updatedTasks))
       } else {
         const { error } = await supabase
           .from('tasks')
@@ -293,11 +293,11 @@ export function TaskDetailPage() {
       const updatedComments = [...comments, comment]
 
       if (isGuestMode) {
-        const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
+        const guestTasks = JSON.parse(localStorage.getItem('pitstop_guest_tasks') || '[]')
         const updatedTasks = guestTasks.map((t: any) =>
           t.id === taskId ? { ...t, comments: updatedComments } : t
         )
-        localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+        localStorage.setItem('pitstop_guest_tasks', JSON.stringify(updatedTasks))
       } else {
         const { error } = await supabase
           .from('task_comments')
@@ -325,11 +325,11 @@ export function TaskDetailPage() {
     setComments(updatedComments)
 
     if (isGuestMode) {
-      const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
+      const guestTasks = JSON.parse(localStorage.getItem('pitstop_guest_tasks') || '[]')
       const updatedTasks = guestTasks.map((t: any) =>
         t.id === taskId ? { ...t, comments: updatedComments } : t
       )
-      localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+      localStorage.setItem('pitstop_guest_tasks', JSON.stringify(updatedTasks))
     }
   }
 
@@ -350,11 +350,11 @@ export function TaskDetailPage() {
       const updatedSubTasks = [...subTasks, subTask]
 
       if (isGuestMode) {
-        const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
+        const guestTasks = JSON.parse(localStorage.getItem('pitstop_guest_tasks') || '[]')
         const updatedTasks = guestTasks.map((t: any) =>
           t.id === taskId ? { ...t, sub_tasks: updatedSubTasks } : t
         )
-        localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+        localStorage.setItem('pitstop_guest_tasks', JSON.stringify(updatedTasks))
       } else {
         const { error } = await supabase
           .from('sub_tasks')
@@ -397,11 +397,11 @@ export function TaskDetailPage() {
 
     try {
       if (isGuestMode) {
-        const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
+        const guestTasks = JSON.parse(localStorage.getItem('pitstop_guest_tasks') || '[]')
         const updatedTasks = guestTasks.map((t: any) =>
           t.id === taskId ? { ...t, sub_tasks: updatedSubTasks } : t
         )
-        localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+        localStorage.setItem('pitstop_guest_tasks', JSON.stringify(updatedTasks))
       } else {
         const { error } = await supabase
           .from('sub_tasks')
@@ -427,11 +427,11 @@ export function TaskDetailPage() {
     setSubTasks(updatedSubTasks)
 
     if (isGuestMode) {
-      const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
+      const guestTasks = JSON.parse(localStorage.getItem('pitstop_guest_tasks') || '[]')
       const updatedTasks = guestTasks.map((t: any) =>
         t.id === taskId ? { ...t, sub_tasks: updatedSubTasks } : t
       )
-      localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
+      localStorage.setItem('pitstop_guest_tasks', JSON.stringify(updatedTasks))
     }
   }
 
@@ -568,7 +568,7 @@ export function TaskDetailPage() {
       </AnimatePresence>
 
       {/* Main Content Area */}
-      <div className="flex flex-col flex-1 lg:pl-64">
+      <div className="flex flex-col flex-1">
         {/* Modern Top Header */}
         <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
