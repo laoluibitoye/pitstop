@@ -524,75 +524,12 @@ export function TaskDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Modern Sidebar */}
-      <AnimatePresence>
-        {sidebarOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            />
-            <motion.aside
-              initial={{ x: -256 }}
-              animate={{ x: 0 }}
-              exit={{ x: -256 }}
-              className="fixed left-0 top-0 z-50 h-full w-64 border-r border-border bg-card"
-            >
-              <div className="flex h-16 items-center justify-between border-b border-border px-6">
-                <div className="flex flex-col">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">P</span>
-                    </div>
-                    <span className="text-lg font-semibold">PitStop</span>
-                  </div>
-                  <div className="ml-10 mt-1">
-                    <p className="text-sm text-muted-foreground">Task Details</p>
-                    <p className="text-xs text-muted-foreground">{task.title}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="p-2 hover:bg-accent rounded-lg lg:hidden"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <nav className="p-4 space-y-2">
-                <button onClick={handleGoHome} className="nav-link w-full justify-start">
-                  <Home className="h-4 w-4" />
-                  <span>Home</span>
-                </button>
-                <button onClick={() => router.push('/dashboard')} className="nav-link w-full justify-start">
-                  <Grid className="h-4 w-4" />
-                  <span>Dashboard</span>
-                </button>
-                <button onClick={() => router.push('/settings')} className="nav-link w-full justify-start">
-                  <Settings className="h-4 w-4" />
-                  <span>Settings</span>
-                </button>
-              </nav>
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
-
       {/* Main Content Area */}
       <div className="flex flex-col flex-1">
         {/* Modern Top Header */}
         <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="p-2 hover:bg-accent rounded-lg lg:hidden"
-              >
-                <Menu className="h-4 w-4" />
-              </button>
-
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => router.back()}
@@ -606,12 +543,20 @@ export function TaskDetailPage() {
                 </div>
                 <div>
                   <h1 className="text-xl font-semibold text-foreground">Task Details</h1>
-                  <p className="text-sm text-muted-foreground">{task.title}</p>
+                  <p className="text-sm text-muted-foreground hidden sm:block">{task.title}</p>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center space-x-2">
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="p-2 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground"
+                title="Dashboard"
+              >
+                <Grid className="h-4 w-4" />
+              </button>
+
               <button
                 onClick={toggleTheme}
                 className="p-2 hover:bg-accent rounded-lg"
@@ -627,7 +572,7 @@ export function TaskDetailPage() {
               <div className="flex items-center space-x-2">
                 {user ? (
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm text-muted-foreground hidden sm:block">
                       {user.user_metadata?.full_name || user.email}
                     </span>
                     <button

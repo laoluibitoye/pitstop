@@ -357,39 +357,44 @@ export function PersonalDashboard() {
         </motion.button>
       </div>
 
+      {/* Intro Banner */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-purple-700 p-8 text-white shadow-lg">
+        <div className="relative z-10 flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold tracking-tight">Welcome back, {user?.user_metadata?.full_name?.split(' ')[0] || 'Guest'}!</h2>
+            <p className="max-w-xl text-blue-100">
+              Track your progress, manage your tasks, and stay organized. You have {tasks.filter(t => t.status === 'ongoing').length} ongoing tasks today.
+            </p>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center space-x-2 rounded-xl bg-white/10 px-6 py-3 font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/20"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Create New Task</span>
+          </motion.button>
+        </div>
+
+        {/* Decorative background elements */}
+        <div className="absolute -right-10 -top-10 h-64 w-64 rounded-full bg-blue-500/30 blur-3xl"></div>
+        <div className="absolute -left-10 -bottom-10 h-64 w-64 rounded-full bg-purple-500/30 blur-3xl"></div>
+      </div>
+
       {/* Dashboard Stats */}
       <DashboardStats tasks={tasks} />
 
       {/* Content Area */}
       <div className="space-y-6">
-        {/* Filter Row & Controls */}
-        <div className="flex flex-col gap-4">
-          <TaskFilterRow
-            filters={filters}
-            onFiltersChange={setFilters}
-            onSearch={setSearchQuery}
-          />
-
-          <div className="flex justify-end">
-            <div className="flex items-center border border-border rounded-lg bg-card">
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-l-lg transition-colors ${viewMode === 'list' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-                title="List View"
-              >
-                <List className="h-4 w-4" />
-              </button>
-              <div className="w-px bg-border h-full"></div>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-r-lg transition-colors ${viewMode === 'grid' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-                title="Grid View"
-              >
-                <Grid className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        </div>
+        {/* Filter Row */}
+        <TaskFilterRow
+          filters={filters}
+          onFiltersChange={setFilters}
+          onSearch={setSearchQuery}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+        />
 
         {/* Task List */}
         {loading ? (
