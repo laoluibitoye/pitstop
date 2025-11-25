@@ -51,7 +51,7 @@ export function TaskDetailPage() {
   const [editTitle, setEditTitle] = useState('')
   const [editDescription, setEditDescription] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'subtasks' | 'comments'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'subtasks' | 'comments' | 'files'>('overview')
 
   // Comments state
   const [comments, setComments] = useState<TaskComment[]>([])
@@ -185,11 +185,11 @@ export function TaskDetailPage() {
                   *,
                   user:profiles(*)
                 `)
-                .in('sub_task_id', subTasksData.map(st => st.id))
+                .in('sub_task_id', subTasksData.map((st: any) => st.id))
                 .order('created_at', { ascending: false })
 
               const filesMap: Record<string, SubTaskFile[]> = {}
-              stFilesData?.forEach(file => {
+              stFilesData?.forEach((file: any) => {
                 if (!filesMap[file.sub_task_id]) filesMap[file.sub_task_id] = []
                 filesMap[file.sub_task_id].push(file)
               })
