@@ -97,7 +97,7 @@ export function DashboardContentWithSuspense({
         setGuestName('Guest User')
       }
     }
-    
+
     // Initialize demo activity data for active users feature
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
@@ -151,13 +151,13 @@ export function DashboardContentWithSuspense({
     const matchesSearch = !searchQuery ||
       task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       task.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    
+
     // Status filter
     const matchesStatus = filters.status.length === 0 || filters.status.includes(task.status)
-    
+
     // Priority filter
     const matchesPriority = filters.priority.length === 0 || filters.priority.includes(task.priority)
-    
+
     // Created date filter
     let matchesCreatedDate = true
     if (filters.created_date_from || filters.created_date_to) {
@@ -172,7 +172,7 @@ export function DashboardContentWithSuspense({
         matchesCreatedDate = matchesCreatedDate && taskCreatedDate <= toDate
       }
     }
-    
+
     // Updated date filter
     let matchesUpdatedDate = true
     if (filters.updated_date_from || filters.updated_date_to) {
@@ -187,7 +187,7 @@ export function DashboardContentWithSuspense({
         matchesUpdatedDate = matchesUpdatedDate && taskUpdatedDate <= toDate
       }
     }
-    
+
     return matchesSearch && matchesStatus && matchesPriority && matchesCreatedDate && matchesUpdatedDate
   })
 
@@ -226,7 +226,7 @@ export function DashboardContentWithSuspense({
 
       if (hasChanges) {
         setTasks(updatedTasks)
-        
+
         // Save to localStorage if guest mode
         if (isGuestMode) {
           localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
@@ -249,7 +249,7 @@ export function DashboardContentWithSuspense({
       if (isGuestMode) {
         // Load guest tasks from localStorage
         let guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
-        
+
         // Add sample tasks if no tasks exist
         if (guestTasks.length === 0 && typeof window !== 'undefined') {
           const sampleTasks = [
@@ -404,13 +404,13 @@ export function DashboardContentWithSuspense({
           localStorage.setItem('guest_tasks', JSON.stringify(sampleTasks))
           guestTasks = sampleTasks
         }
-        
+
         setTasks(guestTasks)
       } else {
         // Load tasks from Supabase
         // const { data } = await db.getTasks({ search: searchQuery, ...filters })
         // setTasks(data || [])
-        
+
         // Mock data for now
         setTasks([])
       }
@@ -462,7 +462,7 @@ export function DashboardContentWithSuspense({
     if (isGuestMode) {
       const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
       const taskToDelete = guestTasks.find((task: Task) => task.id === taskId)
-      
+
       // Only allow guests to delete their own tasks (not sample tasks)
       if (taskToDelete && taskToDelete.created_by === 'guest') {
         const filteredTasks = guestTasks.filter((task: Task) => task.id !== taskId)
@@ -500,109 +500,12 @@ export function DashboardContentWithSuspense({
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Modern Sidebar */}
-      <AnimatePresence>
-        {sidebarOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            />
-            <motion.aside
-              initial={{ x: -256 }}
-              animate={{ x: 0 }}
-              exit={{ x: -256 }}
-              className="fixed left-0 top-0 z-50 h-full w-80 border-r border-border bg-white dark:bg-gray-900 shadow-2xl"
-            >
-              {/* Sidebar Header */}
-              <div className="relative border-b border-border bg-white dark:bg-gray-900">
-                <div className="flex flex-col pt-8 pb-4 px-6">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <span className="text-white font-bold text-lg">P</span>
-                    </div>
-                    <div>
-                      <span className="text-xl font-bold text-gray-900 dark:text-white">PitStop</span>
-                      <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Collaborative Task Management</p>
-                    </div>
-                  </div>
-                  <div className="ml-13 mt-6">
-                    <p className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                      {isGuestMode ? `Welcome, ${guestName}!` : 'Dashboard'}
-                    </p>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'} • {isGuestMode ? 'Guest Mode' : 'Full Access'}
-                    </p>
-                  </div>
-                </div>
-                
-                {/* Close Button - Positioned at top right */}
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="absolute top-4 right-4 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-all duration-200 touch-target z-10"
-                  aria-label="Close sidebar"
-                >
-                  <X className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-                </button>
-              </div>
-              
-              {/* Sidebar Navigation */}
-              <nav className="p-6 space-y-3 flex-1">
-                <button className="nav-link-enhanced w-full justify-start active group">
-                  <Grid className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
-                  <span className="font-medium">Dashboard</span>
-                  <div className="w-2 h-2 bg-blue-500 rounded-full ml-auto"></div>
-                </button>
-                <button className="nav-link-enhanced w-full justify-start group">
-                  <Filter className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
-                  <span className="font-medium">Tasks</span>
-                  <ArrowLeft className="h-4 w-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-                </button>
-                <button className="nav-link-enhanced w-full justify-start group">
-                  <Settings className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
-                  <span className="font-medium">Settings</span>
-                  <ArrowLeft className="h-4 w-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-                </button>
-              </nav>
-              
-              {/* Sidebar Footer */}
-              <div className="p-6 border-t border-border bg-gray-50/50 dark:bg-gray-800/50">
-                <div className="flex items-center space-x-3 p-3 bg-white dark:bg-gray-700 rounded-xl shadow-sm">
-                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-xs">✓</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {isGuestMode ? 'Guest Mode' : 'Authenticated'}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {filteredTasks.length} active tasks
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
-
       {/* Main Content Area */}
       <div className="flex flex-col flex-1">
         {/* Modern Top Header */}
         <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="p-2 hover:bg-accent rounded-lg lg:hidden touch-target"
-                aria-label="Toggle sidebar"
-              >
-                <Menu className="h-4 w-4" />
-              </button>
-              
               <div className="header-mobile flex-1 min-w-0">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
                   <span className="text-white font-bold text-sm">P</span>
@@ -639,9 +542,9 @@ export function DashboardContentWithSuspense({
                 )}
               </div>
 
-              
 
-              
+
+
 
               {/* Theme Toggle */}
               <button
@@ -739,9 +642,9 @@ export function DashboardContentWithSuspense({
                       <button
                         onClick={() => {
                           setSearchQuery('')
-                          setFilters({ 
-                            status: [], 
-                            priority: [], 
+                          setFilters({
+                            status: [],
+                            priority: [],
                             category_id: '',
                             created_date_from: '',
                             created_date_to: '',
@@ -783,7 +686,7 @@ export function DashboardContentWithSuspense({
                   100% FREE
                 </span>
               </div>
-              
+
               <div className="flex items-center space-x-6">
                 {/* Home Link */}
                 <button
@@ -794,7 +697,7 @@ export function DashboardContentWithSuspense({
                   <Home className="h-4 w-4" />
                   <span>Home</span>
                 </button>
-                
+
                 <div className="text-sm text-muted-foreground">
                   © 2025 PitStop. All rights reserved.
                 </div>

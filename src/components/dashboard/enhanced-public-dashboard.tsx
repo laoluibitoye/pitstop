@@ -32,6 +32,7 @@ import { useAuth } from '@/components/providers/auth-provider'
 import { PrivacyControls } from '@/components/tasks/privacy-controls'
 import { ShareModal } from '@/components/tasks/share-modal'
 import { CreateTaskModal } from '@/components/tasks/create-task-modal'
+import { TaskCard } from '@/components/tasks/task-card'
 
 interface PublicTask extends Omit<Task, 'created_user'> {
   created_user: {
@@ -455,120 +456,20 @@ export function EnhancedPublicDashboard() {
           }
         >
           {filteredTasks.map((task, index) => (
-            <motion.div
+            <TaskCard
               key={task.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              onClick={() => window.location.href = `/tasks/${task.id}`}
-              className={`bg-card border border-border rounded-lg p-6 hover:shadow-lg transition-all duration-200 group cursor-pointer ${viewMode === 'list' ? 'flex items-center space-x-6' : ''
-                }`}
-            >
-              <div className={viewMode === 'list' ? 'flex-1' : ''}>
-                {/* Task Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    {/* User Avatar */}
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                      {task.created_user?.full_name?.[0] || task.created_user?.username?.[0] || '?'}
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground">
-                        {task.created_user?.full_name || task.created_user?.username || 'Anonymous'}
-                      </p>
-                      <p className="text-xs text-muted-foreground flex items-center">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {new Date(task.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    {/* Status and Priority */}
-                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${task.status === 'completed' ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' :
-                      task.status === 'ongoing' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' :
-                        task.status === 'delayed' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400' :
-                          'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
-                      }`}>
-                      {task.status}
-                    </div>
-
-                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${task.priority === 'urgent' ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' :
-                      task.priority === 'high' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400' :
-                        task.priority === 'medium' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' :
-                          'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400'
-                      }`}>
-                      {task.priority}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Task Content */}
-                <h3 className="font-semibold text-foreground mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                  {task.title}
-                </h3>
-
-                {task.description && (
-                  <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
-                    {task.description}
-                  </p>
-                )}
-
-                {/* Task Stats */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                    <div className="flex items-center space-x-1 hover:text-pink-600 transition-colors">
-                      <Heart className="h-4 w-4" />
-                      <span>{task.stats?.likes || 0}</span>
-                    </div>
-                    <div className="flex items-center space-x-1 hover:text-blue-600 transition-colors">
-                      <MessageCircle className="h-4 w-4" />
-                      <span>{task.stats?.comments || 0}</span>
-                    </div>
-                    <div className="flex items-center space-x-1 hover:text-green-600 transition-colors">
-                      <Eye className="h-4 w-4" />
-                      <span>{task.stats?.views || 0}</span>
-                    </div>
-                  </div>
-
-                  {task.stats?.trending_score && task.stats.trending_score > 10 && (
-                    <div className="flex items-center space-x-1 text-xs text-orange-600 dark:text-orange-400">
-                      <Fire className="h-3 w-3" />
-                      <span>Trending</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className={`flex items-center space-x-2 ${viewMode === 'list' ? '' : 'mt-4'}`}>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleShareTask(task)
-                  }}
-                  className="px-3 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors flex items-center space-x-1"
-                >
-                  <Share2 className="h-3 w-3" />
-                  <span>Share</span>
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    window.location.href = `/tasks/${task.id}`
-                  }}
-                  className="px-3 py-1.5 border border-border rounded text-sm hover:bg-accent transition-colors flex items-center space-x-1"
-                >
-                  <Eye className="h-3 w-3" />
-                  <span>View</span>
-                </button>
-              </div>
-            </motion.div>
+              task={task}
+              viewMode={viewMode}
+              isGuestMode={isGuest}
+              currentUserId={user?.id}
+              onShare={() => handleShareTask(task)}
+              onView={() => window.location.href = `/tasks/${task.id}`}
+              showActions={false}
+              isPublic={true}
+            />
           ))}
         </motion.div>
       )}
-      )
-}
 
       {/* Community CTA */}
       <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-8 text-white text-center">

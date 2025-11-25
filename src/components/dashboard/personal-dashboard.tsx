@@ -19,7 +19,7 @@ import { Task } from '@/types'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/providers/auth-provider'
 import { EnhancedTaskList } from '@/components/tasks/enhanced-task-list'
-import { TaskFilters } from '@/components/tasks/task-filters'
+import { TaskFilterRow } from '@/components/tasks/task-filter-row'
 import { CreateTaskModal } from '@/components/tasks/create-task-modal'
 import { DashboardStats } from '@/components/dashboard/dashboard-stats'
 import { PrivacyControls } from '@/components/tasks/privacy-controls'
@@ -32,6 +32,10 @@ interface TaskFilters {
   status: TaskStatus[]
   priority: TaskPriority[]
   category_id: string
+  created_date_from?: string
+  created_date_to?: string
+  updated_date_from?: string
+  updated_date_to?: string
 }
 
 export function PersonalDashboard() {
@@ -46,6 +50,10 @@ export function PersonalDashboard() {
     status: [],
     priority: [],
     category_id: '',
+    created_date_from: '',
+    created_date_to: '',
+    updated_date_from: '',
+    updated_date_to: '',
   })
 
   const { user, isGuest, loading: authLoading } = useAuth()
@@ -353,69 +361,53 @@ export function PersonalDashboard() {
       <DashboardStats tasks={tasks} />
 
       {/* Content Area */}
-      <div className="grid gap-6 lg:grid-cols-4">
-        {/* Sidebar Filters */}
-        <div className="lg:col-span-1">
-          <TaskFilters
+      <div className="space-y-6">
+        {/* Filter Row & Controls */}
+        <div className="flex flex-col gap-4">
+          <TaskFilterRow
             filters={filters}
             onFiltersChange={setFilters}
             onSearch={setSearchQuery}
           />
+
+          <div className="flex justify-end">
+            <div className="flex items-center border border-border rounded-lg bg-card">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-l-lg transition-colors ${viewMode === 'list' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                title="List View"
+              >
+                <List className="h-4 w-4" />
+              </button>
+              <div className="w-px bg-border h-full"></div>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-r-lg transition-colors ${viewMode === 'grid' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                title="Grid View"
+              >
+                <Grid className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Task List */}
-        <div className="lg:col-span-3">
-          {/* Controls */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-4">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search your tasks..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground w-64"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              {/* View Toggle */}
-              <div className="flex items-center border border-border rounded-lg">
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 ${viewMode === 'list' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                >
-                  <List className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 ${viewMode === 'grid' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                >
-                  <Grid className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
+        {loading ? (
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="card p-6 loading-pulse h-24"></div>
+            ))}
           </div>
-
-          {/* Task List */}
-          {loading ? (
-            <div className="space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="card p-6 loading-pulse h-24"></div>
-              ))}
-            </div>
-          ) : (
-            <EnhancedTaskList
-              tasks={tasks}
-              onUpdateTask={updateTask}
-              onDeleteTask={deleteTask}
-              searchQuery={searchQuery}
-            />
-          )}
-        </div>
+        ) : (
+          <EnhancedTaskList
+            tasks={tasks}
+            onUpdateTask={updateTask}
+            onDeleteTask={deleteTask}
+            searchQuery={searchQuery}
+            viewMode={viewMode}
+            isGuestMode={isGuest}
+          />
+        )}
       </div>
 
       {/* Modals */}

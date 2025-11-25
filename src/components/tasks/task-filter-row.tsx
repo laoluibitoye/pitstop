@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Filter, X, Calendar, Flag, ChevronDown, Check } from 'lucide-react'
+import { Filter, X, Calendar, Flag, ChevronDown, Check, Search, SlidersHorizontal } from 'lucide-react'
 
 type TaskStatus = 'ongoing' | 'completed' | 'delayed' | 'cancelled'
 type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
@@ -25,31 +25,22 @@ interface TaskFilterRowProps {
 
 export function TaskFilterRow({ filters, onFiltersChange, onSearch }: TaskFilterRowProps) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [showDateFilters, setShowDateFilters] = useState(false)
-  const [showStatusFilters, setShowStatusFilters] = useState(false)
-  const [showPriorityFilters, setShowPriorityFilters] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value)
     onSearch(value)
   }
 
-  const toggleFilter = (type: 'status' | 'priority', value: string, add: boolean = true) => {
+  const toggleFilter = (type: 'status' | 'priority', value: string) => {
     const currentValues = (filters[type] as string[]) || []
-    const newValues = add
-      ? [...currentValues, value]
-      : currentValues.filter(v => v !== value)
-    
+    const newValues = currentValues.includes(value)
+      ? currentValues.filter(v => v !== value)
+      : [...currentValues, value]
+
     onFiltersChange({
       ...filters,
       [type]: newValues
-    })
-  }
-
-  const handleDateFilterChange = (field: string, value: string) => {
-    onFiltersChange({
-      ...filters,
-      [field]: value
     })
   }
 
@@ -67,275 +58,148 @@ export function TaskFilterRow({ filters, onFiltersChange, onSearch }: TaskFilter
     onSearch('')
   }
 
-  const hasActiveFilters = (filters.status?.length || 0) > 0 || 
-                          (filters.priority?.length || 0) > 0 || 
-                          searchQuery ||
-                          filters.created_date_from || 
-                          filters.created_date_to ||
-                          filters.updated_date_from || 
-                          filters.updated_date_to
-
-  const hasDateFilters = filters.created_date_from || 
-                        filters.created_date_to ||
-                        filters.updated_date_from || 
-                        filters.updated_date_to
+  const hasActiveFilters = (filters.status?.length || 0) > 0 ||
+    (filters.priority?.length || 0) > 0 ||
+    filters.created_date_from ||
+    filters.created_date_to
 
   const statusOptions: TaskStatus[] = ['ongoing', 'completed', 'delayed', 'cancelled']
   const priorityOptions: TaskPriority[] = ['low', 'medium', 'high', 'urgent']
 
-  const getStatusColor = (status: TaskStatus) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800'
-      case 'ongoing': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'
-      case 'delayed': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800'
-      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800'
-    }
-  }
-
-  const getPriorityColor = (priority: TaskPriority) => {
-    switch (priority) {
-      case 'urgent': return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800'
-      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800'
-      case 'medium': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'
-      case 'low': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800'
-    }
-  }
-
   return (
-    <div className="neo-card p-4 bg-white/50 dark:bg-dark-card/50 space-y-4">
-      {/* Main Filter Row */}
-      <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
-        {/* Status Filter Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => setShowStatusFilters(!showStatusFilters)}
-            className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors flex items-center space-x-2 ${
-              (filters.status || []).length > 0 
-                ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400' 
-                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'
-            }`}
-          >
-            <Flag className="h-4 w-4" />
-            <span>Status {(filters.status || []).length > 0 ? `(${filters.status.length})` : ''}</span>
-            <ChevronDown className={`h-3 w-3 transition-transform ${showStatusFilters ? 'rotate-180' : ''}`} />
-          </button>
-          
-          {showStatusFilters && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute top-full mt-2 left-0 z-10 w-48 bg-white dark:bg-gray-800 border border-border rounded-lg shadow-lg p-2"
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-card border border-border rounded-xl p-2 shadow-sm">
+        {/* Search Bar */}
+        <div className="relative flex-1 w-full sm:w-auto">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search tasks..."
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-transparent border-none focus:ring-0 text-sm placeholder:text-muted-foreground"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => handleSearchChange('')}
+              className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
-              <div className="space-y-1">
-                {statusOptions.map((status) => {
-                  const isSelected = (filters.status || []).includes(status)
-                  return (
-                    <button
-                      key={status}
-                      onClick={() => {
-                        if (isSelected) {
-                          toggleFilter('status', status, false)
-                        } else {
-                          toggleFilter('status', status, true)
-                        }
-                      }}
-                      className={`w-full px-3 py-2 text-left text-sm rounded-md transition-colors ${
-                        isSelected
-                          ? getStatusColor(status)
-                          : 'text-foreground hover:bg-accent'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="capitalize">{status}</span>
-                        {isSelected && <Check className="h-4 w-4" />}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </motion.div>
+              <X className="h-3 w-3" />
+            </button>
           )}
         </div>
 
-        {/* Priority Filter Dropdown */}
-        <div className="relative">
+        {/* Filter Toggle */}
+        <div className="flex items-center gap-2 w-full sm:w-auto border-t sm:border-t-0 sm:border-l border-border pt-2 sm:pt-0 sm:pl-2">
           <button
-            onClick={() => setShowPriorityFilters(!showPriorityFilters)}
-            className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors flex items-center space-x-2 ${
-              (filters.priority || []).length > 0 
-                ? 'bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-400' 
-                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'
-            }`}
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${showFilters || hasActiveFilters
+                ? 'bg-primary/10 text-primary'
+                : 'hover:bg-accent text-muted-foreground hover:text-foreground'
+              }`}
           >
-            <Flag className="h-4 w-4" />
-            <span>Priority {(filters.priority || []).length > 0 ? `(${filters.priority.length})` : ''}</span>
-            <ChevronDown className={`h-3 w-3 transition-transform ${showPriorityFilters ? 'rotate-180' : ''}`} />
+            <SlidersHorizontal className="h-4 w-4" />
+            <span>Filters</span>
+            {hasActiveFilters && (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                {(filters.status?.length || 0) + (filters.priority?.length || 0)}
+              </span>
+            )}
           </button>
-          
-          {showPriorityFilters && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute top-full mt-2 left-0 z-10 w-48 bg-white dark:bg-gray-800 border border-border rounded-lg shadow-lg p-2"
-            >
-              <div className="space-y-1">
-                {priorityOptions.map((priority) => {
-                  const isSelected = (filters.priority || []).includes(priority)
-                  return (
-                    <button
-                      key={priority}
-                      onClick={() => {
-                        if (isSelected) {
-                          toggleFilter('priority', priority, false)
-                        } else {
-                          toggleFilter('priority', priority, true)
-                        }
-                      }}
-                      className={`w-full px-3 py-2 text-left text-sm rounded-md transition-colors ${
-                        isSelected
-                          ? getPriorityColor(priority)
-                          : 'text-foreground hover:bg-accent'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="capitalize">{priority}</span>
-                        {isSelected && <Check className="h-4 w-4" />}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </motion.div>
-          )}
-        </div>
 
-        {/* Date Filter Toggle & Clear */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowDateFilters(!showDateFilters)}
-            className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors flex items-center space-x-2 ${
-              hasDateFilters 
-                ? 'bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-900/20 dark:border-purple-800 dark:text-purple-400' 
-                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'
-            }`}
-          >
-            <Calendar className="h-4 w-4" />
-            <span>Date Filters</span>
-            <ChevronDown className={`h-3 w-3 transition-transform ${showDateFilters ? 'rotate-180' : ''}`} />
-          </button>
-          
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="text-sm text-red-600 hover:text-red-700 flex items-center px-2 py-1 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+              title="Clear all filters"
             >
-              <X className="h-4 w-4 mr-1" />
-              Clear
+              <X className="h-4 w-4" />
             </button>
           )}
         </div>
       </div>
 
-      {/* Expandable Date Filters */}
+      {/* Expanded Filters */}
       <AnimatePresence>
-        {showDateFilters && (
+        {showFilters && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-border">
-              {/* Created Date Range */}
+            <div className="bg-card border border-border rounded-xl p-4 space-y-6">
+              {/* Status Filters */}
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">
-                  Created From
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 block">
+                  Status
                 </label>
-                <input
-                  type="date"
-                  value={filters.created_date_from || ''}
-                  onChange={(e) => handleDateFilterChange('created_date_from', e.target.value)}
-                  className="neo-input w-full text-xs"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">
-                  Created To
-                </label>
-                <input
-                  type="date"
-                  value={filters.created_date_to || ''}
-                  onChange={(e) => handleDateFilterChange('created_date_to', e.target.value)}
-                  className="neo-input w-full text-xs"
-                />
+                <div className="flex flex-wrap gap-2">
+                  {statusOptions.map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => toggleFilter('status', status)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${filters.status?.includes(status)
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background border-border text-muted-foreground hover:border-primary/50'
+                        }`}
+                    >
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Modified Date Range */}
+              {/* Priority Filters */}
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">
-                  Modified From
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 block">
+                  Priority
                 </label>
-                <input
-                  type="date"
-                  value={filters.updated_date_from || ''}
-                  onChange={(e) => handleDateFilterChange('updated_date_from', e.target.value)}
-                  className="neo-input w-full text-xs"
-                />
+                <div className="flex flex-wrap gap-2">
+                  {priorityOptions.map((priority) => (
+                    <button
+                      key={priority}
+                      onClick={() => toggleFilter('priority', priority)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${filters.priority?.includes(priority)
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background border-border text-muted-foreground hover:border-primary/50'
+                        }`}
+                    >
+                      {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                    </button>
+                  ))}
+                </div>
               </div>
-              
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">
-                  Modified To
-                </label>
-                <input
-                  type="date"
-                  value={filters.updated_date_to || ''}
-                  onChange={(e) => handleDateFilterChange('updated_date_to', e.target.value)}
-                  className="neo-input w-full text-xs"
-                />
+
+              {/* Date Filters */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 block">
+                    Created After
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.created_date_from || ''}
+                    onChange={(e) => onFiltersChange({ ...filters, created_date_from: e.target.value })}
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 block">
+                    Created Before
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.created_date_to || ''}
+                    onChange={(e) => onFiltersChange({ ...filters, created_date_to: e.target.value })}
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Active Filters Summary */}
-      {hasActiveFilters && (
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-          <span className="text-xs text-muted-foreground">Active filters:</span>
-          {filters.status?.map(status => (
-            <span key={`status-${status}`} className={`px-2 py-1 rounded-full text-xs ${getStatusColor(status)}`}>
-              {status}
-            </span>
-          ))}
-          {filters.priority?.map(priority => (
-            <span key={`priority-${priority}`} className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(priority)}`}>
-              {priority}
-            </span>
-          ))}
-          {searchQuery && (
-            <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800">
-              Search: "{searchQuery}"
-            </span>
-          )}
-          {(filters.created_date_from || filters.created_date_to) && (
-            <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800">
-              Created Date
-            </span>
-          )}
-          {(filters.updated_date_from || filters.updated_date_to) && (
-            <span className="px-2 py-1 rounded-full text-xs bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800">
-              Modified Date
-            </span>
-          )}
-        </div>
-      )}
     </div>
   )
 }
