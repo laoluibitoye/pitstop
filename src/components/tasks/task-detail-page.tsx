@@ -27,9 +27,13 @@ import {
   LogOut,
   Clock,
   Flag,
-  Tag
+  Tag,
+  Paperclip,
+  File as FileIcon,
+  Download
 } from 'lucide-react'
-import { Task, TaskComment, SubTask } from '@/types'
+import { Task, TaskComment, SubTask, TaskFile, SubTaskFile, Profile } from '@/types'
+import { FileUploader } from '@/components/common/file-uploader'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useTheme } from 'next-themes'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -55,9 +59,18 @@ export function TaskDetailPage() {
   const [showCommentForm, setShowCommentForm] = useState(false)
 
   // Sub-tasks state
+  // Sub-tasks state
   const [subTasks, setSubTasks] = useState<SubTask[]>([])
   const [newSubTaskTitle, setNewSubTaskTitle] = useState('')
+  const [newSubTaskDescription, setNewSubTaskDescription] = useState('')
+  const [newSubTaskAssignee, setNewSubTaskAssignee] = useState('')
   const [showSubTaskForm, setShowSubTaskForm] = useState(false)
+  const [expandedSubTask, setExpandedSubTask] = useState<string | null>(null)
+
+  // Files state
+  const [taskFiles, setTaskFiles] = useState<TaskFile[]>([])
+  const [subTaskFiles, setSubTaskFiles] = useState<Record<string, SubTaskFile[]>>({})
+  const [profiles, setProfiles] = useState<Profile[]>([])
 
   const taskId = params?.taskId as string
   const isGuestMode = searchParams.get('mode') === 'guest'
@@ -78,9 +91,27 @@ export function TaskDetailPage() {
           setEditDescription(foundTask.description || '')
           setComments(foundTask.comments || [])
           setSubTasks(foundTask.sub_tasks || [])
+          // Mock files for guest mode if stored locally
+          setTaskFiles(foundTask.files || [])
+          // Mock subtask files
+          const stFiles: Record<string, SubTaskFile[]> = {}
+          if (foundTask.sub_tasks) {
+            foundTask.sub_tasks.forEach((st: SubTask) => {
+              if (st.files) stFiles[st.id] = st.files
+            })
+          }
+          setSubTaskFiles(stFiles)
         }
       } else {
         try {
+          // Fetch profiles for assignee dropdown
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('full_name')
+
+          if (profilesData) setProfiles(profilesData)
+
           const { data, error } = await supabase
             .from('tasks')
             .select(`
@@ -122,13 +153,48 @@ export function TaskDetailPage() {
 
             setComments(commentsData || [])
 
+            // Fetch subtasks with assignee
             const { data: subTasksData } = await supabase
               .from('sub_tasks')
-              .select('*')
+              .select(`
+                *,
+                assigned_user:profiles!sub_tasks_assigned_to_fkey(*)
+              `)
               .eq('task_id', taskId)
               .order('position', { ascending: true })
 
             setSubTasks(subTasksData || [])
+
+            // Fetch task files
+            const { data: filesData } = await supabase
+              .from('task_files')
+              .select(`
+                *,
+                user:profiles(*)
+              `)
+              .eq('task_id', taskId)
+              .order('created_at', { ascending: false })
+
+            setTaskFiles(filesData || [])
+
+            // Fetch subtask files
+            if (subTasksData && subTasksData.length > 0) {
+              const { data: stFilesData } = await supabase
+                .from('sub_task_files')
+                .select(`
+                  *,
+                  user:profiles(*)
+                `)
+                .in('sub_task_id', subTasksData.map(st => st.id))
+                .order('created_at', { ascending: false })
+
+              const filesMap: Record<string, SubTaskFile[]> = {}
+              stFilesData?.forEach(file => {
+                if (!filesMap[file.sub_task_id]) filesMap[file.sub_task_id] = []
+                filesMap[file.sub_task_id].push(file)
+              })
+              setSubTaskFiles(filesMap)
+            }
           }
         } catch (dbError) {
           console.error('Database error:', dbError)
@@ -342,10 +408,13 @@ export function TaskDetailPage() {
       id: tempId,
       task_id: taskId,
       title: newSubTaskTitle.trim(),
+      description: newSubTaskDescription.trim() || undefined,
+      assigned_to: newSubTaskAssignee || undefined,
       status: 'ongoing',
       position: subTasks.length,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      assigned_user: profiles.find(p => p.id === newSubTaskAssignee)
     }
 
     try {
@@ -358,6 +427,8 @@ export function TaskDetailPage() {
         localStorage.setItem('pitstop_guest_tasks', JSON.stringify(updatedTasks))
         setSubTasks(updatedSubTasks)
         setNewSubTaskTitle('')
+        setNewSubTaskDescription('')
+        setNewSubTaskAssignee('')
         setShowSubTaskForm(false)
       } else {
         // For authenticated users, insert into DB first
@@ -366,10 +437,15 @@ export function TaskDetailPage() {
           .insert({
             task_id: taskId,
             title: newSubTaskTitle.trim(),
+            description: newSubTaskDescription.trim() || null,
+            assigned_to: newSubTaskAssignee || null,
             status: 'ongoing',
             position: subTasks.length
           })
-          .select()
+          .select(`
+            *,
+            assigned_user:profiles!sub_tasks_assigned_to_fkey(*)
+          `)
           .single()
 
         if (error) {
@@ -380,6 +456,8 @@ export function TaskDetailPage() {
         // Update local state with returned data
         setSubTasks([...subTasks, data])
         setNewSubTaskTitle('')
+        setNewSubTaskDescription('')
+        setNewSubTaskAssignee('')
         setShowSubTaskForm(false)
 
         // Reload task to ensure sync
@@ -388,6 +466,115 @@ export function TaskDetailPage() {
     } catch (error: any) {
       console.error('Failed to add sub-task:', error)
       alert(`Failed to add sub-task: ${error?.message || 'Unknown error'}`)
+    }
+  }
+
+  const handleFileUpload = async (file: File) => {
+    if (!user || isGuestMode) {
+      alert('Please sign in to upload files.')
+      return
+    }
+
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Math.random()}.${fileExt}`
+      const filePath = `${taskId}/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('attachments')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      const { data, error: dbError } = await supabase
+        .from('task_files')
+        .insert({
+          task_id: taskId,
+          user_id: user.id,
+          file_name: file.name,
+          file_path: filePath,
+          file_size: file.size,
+          file_type: file.type
+        })
+        .select(`
+          *,
+          user:profiles(*)
+        `)
+        .single()
+
+      if (dbError) throw dbError
+
+      setTaskFiles([data, ...taskFiles])
+    } catch (error: any) {
+      console.error('Error uploading file:', error)
+      alert(`Error uploading file: ${error.message}`)
+    }
+  }
+
+  const handleSubTaskFileUpload = async (subTaskId: string, file: File) => {
+    if (!user || isGuestMode) {
+      alert('Please sign in to upload files.')
+      return
+    }
+
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Math.random()}.${fileExt}`
+      const filePath = `${taskId}/${subTaskId}/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('attachments')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      const { data, error: dbError } = await supabase
+        .from('sub_task_files')
+        .insert({
+          sub_task_id: subTaskId,
+          user_id: user.id,
+          file_name: file.name,
+          file_path: filePath,
+          file_size: file.size,
+          file_type: file.type
+        })
+        .select(`
+          *,
+          user:profiles(*)
+        `)
+        .single()
+
+      if (dbError) throw dbError
+
+      setSubTaskFiles(prev => ({
+        ...prev,
+        [subTaskId]: [data, ...(prev[subTaskId] || [])]
+      }))
+    } catch (error: any) {
+      console.error('Error uploading file:', error)
+      alert(`Error uploading file: ${error.message}`)
+    }
+  }
+
+  const downloadFile = async (path: string, fileName: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('attachments')
+        .download(path)
+
+      if (error) throw error
+
+      const url = URL.createObjectURL(data)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error: any) {
+      console.error('Error downloading file:', error)
+      alert(`Error downloading file: ${error.message}`)
     }
   }
 
@@ -789,6 +976,15 @@ export function TaskDetailPage() {
                   >
                     Comments ({comments.length})
                   </button>
+                  <button
+                    onClick={() => setActiveTab('files')}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'files'
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
+                      }`}
+                  >
+                    Files ({taskFiles.length})
+                  </button>
                 </nav>
               </div>
 
@@ -906,89 +1102,183 @@ export function TaskDetailPage() {
                     </div>
 
                     {showSubTaskForm && (
-                      <div className="flex items-center space-x-2 p-4 border-2 border-dashed border-border rounded-lg">
+                      <div className="p-4 border border-border rounded-lg bg-accent/10 space-y-4">
                         <input
                           type="text"
                           value={newSubTaskTitle}
                           onChange={(e) => setNewSubTaskTitle(e.target.value)}
-                          className="flex-1 bg-transparent border-none outline-none"
-                          placeholder="New sub-task title"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              addSubTask()
-                            } else if (e.key === 'Escape') {
-                              setShowSubTaskForm(false)
-                              setNewSubTaskTitle('')
-                            }
-                          }}
+                          className="w-full bg-background border border-border rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50"
+                          placeholder="Sub-task title"
                           autoFocus
                         />
-                        <button
-                          onClick={addSubTask}
-                          className="btn-primary"
-                          disabled={!newSubTaskTitle.trim()}
-                        >
-                          Add
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowSubTaskForm(false)
-                            setNewSubTaskTitle('')
-                          }}
-                          className="btn-secondary"
-                        >
-                          Cancel
-                        </button>
+                        <textarea
+                          value={newSubTaskDescription}
+                          onChange={(e) => setNewSubTaskDescription(e.target.value)}
+                          className="w-full bg-background border border-border rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 h-20 resize-none"
+                          placeholder="Description (optional)"
+                        />
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          <div className="flex-1">
+                            <select
+                              value={newSubTaskAssignee}
+                              onChange={(e) => setNewSubTaskAssignee(e.target.value)}
+                              className="w-full bg-background border border-border rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50"
+                            >
+                              <option value="">Unassigned</option>
+                              {profiles.map(profile => (
+                                <option key={profile.id} value={profile.id}>
+                                  {profile.full_name || profile.email}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex gap-2 justify-end">
+                            <button
+                              onClick={() => {
+                                setShowSubTaskForm(false)
+                                setNewSubTaskTitle('')
+                                setNewSubTaskDescription('')
+                                setNewSubTaskAssignee('')
+                              }}
+                              className="btn-secondary"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={addSubTask}
+                              className="btn-primary"
+                              disabled={!newSubTaskTitle.trim()}
+                            >
+                              Add Sub-task
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     )}
 
                     <div className="space-y-3">
-                      {subTasks.map((subTask) => (
+                      {subTasks.map((st) => (
                         <div
-                          key={subTask.id}
-                          className="flex items-center space-x-4 p-4 bg-accent/20 rounded-lg hover:bg-accent/30 transition-colors"
+                          key={st.id}
+                          className={`group border border-border rounded-lg p-4 transition-all ${st.status === 'completed' ? 'bg-accent/20' : 'bg-card hover:shadow-md'
+                            }`}
                         >
-                          <button
-                            onClick={() => toggleSubTaskStatus(subTask.id)}
-                            className={`flex-shrink-0 ${subTask.status === 'completed'
-                              ? 'text-green-600 hover:text-green-700'
-                              : 'text-gray-400 hover:text-green-600'
-                              }`}
-                          >
-                            {subTask.status === 'completed' ? (
-                              <CheckCircle2 className="h-5 w-5" />
-                            ) : (
-                              <Circle className="h-5 w-5" />
-                            )}
-                          </button>
-
-                          <div className="flex-1">
-                            <p
-                              className={`font-medium ${subTask.status === 'completed'
-                                ? 'line-through text-muted-foreground'
-                                : 'text-foreground'
+                          <div className="flex items-start gap-3">
+                            <button
+                              onClick={() => toggleSubTaskStatus(st.id)}
+                              className={`mt-1 flex-shrink-0 transition-colors ${st.status === 'completed' ? 'text-green-500' : 'text-muted-foreground hover:text-primary'
                                 }`}
                             >
-                              {subTask.title}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Created {formatDate(subTask.created_at)}
-                            </p>
-                          </div>
+                              {st.status === 'completed' ? (
+                                <CheckCircle2 className="h-5 w-5" />
+                              ) : (
+                                <Circle className="h-5 w-5" />
+                              )}
+                            </button>
 
-                          <button
-                            onClick={() => deleteSubTask(subTask.id)}
-                            className="p-1 text-red-500 hover:text-red-600 transition-colors"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-start justify-between">
+                                <div className="space-y-1">
+                                  <span className={`font-medium block ${st.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                                    {st.title}
+                                  </span>
+                                  {st.description && (
+                                    <p className="text-sm text-muted-foreground">{st.description}</p>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={() => setExpandedSubTask(expandedSubTask === st.id ? null : st.id)}
+                                    className="p-1 hover:bg-accent rounded text-muted-foreground hover:text-foreground"
+                                    title={expandedSubTask === st.id ? "Collapse" : "Expand"}
+                                  >
+                                    {expandedSubTask === st.id ? (
+                                      <X className="h-4 w-4" />
+                                    ) : (
+                                      <Paperclip className="h-4 w-4" />
+                                    )}
+                                  </button>
+                                  <button
+                                    onClick={() => deleteSubTask(st.id)}
+                                    className="p-1 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                {st.assigned_user && (
+                                  <div className="flex items-center gap-1">
+                                    <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
+                                      {st.assigned_user.full_name?.charAt(0) || st.assigned_user.email?.charAt(0)}
+                                    </div>
+                                    <span>{st.assigned_user.full_name || st.assigned_user.email}</span>
+                                  </div>
+                                )}
+                                {subTaskFiles[st.id]?.length > 0 && (
+                                  <div className="flex items-center gap-1">
+                                    <Paperclip className="h-3 w-3" />
+                                    <span>{subTaskFiles[st.id].length} files</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              <AnimatePresence>
+                                {expandedSubTask === st.id && (
+                                  <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="overflow-hidden pt-4 border-t border-border mt-4"
+                                  >
+                                    <div className="space-y-4">
+                                      <h4 className="text-sm font-semibold flex items-center gap-2">
+                                        <Paperclip className="h-4 w-4" />
+                                        Attachments
+                                      </h4>
+
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {subTaskFiles[st.id]?.map((file) => (
+                                          <div key={file.id} className="flex items-center gap-3 p-3 bg-accent/30 rounded-lg border border-border">
+                                            <div className="p-2 bg-background rounded-md">
+                                              <FileIcon className="h-4 w-4 text-primary" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-sm font-medium truncate" title={file.file_name}>
+                                                {file.file_name}
+                                              </p>
+                                              <p className="text-xs text-muted-foreground">
+                                                {(file.file_size || 0 / 1024).toFixed(1)} KB
+                                              </p>
+                                            </div>
+                                            <button
+                                              onClick={() => downloadFile(file.file_path, file.file_name)}
+                                              className="p-2 hover:bg-background rounded-full transition-colors"
+                                            >
+                                              <Download className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+
+                                      <FileUploader
+                                        onUpload={(file) => handleSubTaskFileUpload(st.id, file)}
+                                        className="bg-background"
+                                      />
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          </div>
                         </div>
                       ))}
 
-                      {subTasks.length === 0 && (
+                      {subTasks.length === 0 && !showSubTaskForm && (
                         <div className="text-center py-12 text-muted-foreground">
-                          <CheckSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>No sub-tasks yet. Add one to get started!</p>
+                          <CheckSquare className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                          <p>No sub-tasks yet. Break down your task into smaller steps!</p>
                         </div>
                       )}
                     </div>
@@ -1091,6 +1381,53 @@ export function TaskDetailPage() {
                           <p>No comments yet. Start the conversation!</p>
                         </div>
                       )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Files Tab */}
+                {activeTab === 'files' && (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-foreground">Files & Attachments</h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {taskFiles.map((file) => (
+                        <div key={file.id} className="group relative flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:shadow-md transition-all">
+                          <div className="p-3 bg-primary/10 rounded-lg">
+                            <FileIcon className="h-6 w-6 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate" title={file.file_name}>
+                              {file.file_name}
+                            </p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                              <span>{(file.file_size || 0 / 1024 / 1024).toFixed(2)} MB</span>
+                              <span>•</span>
+                              <span>{new Date(file.created_at).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => downloadFile(file.file_path, file.file_name)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-background shadow-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:text-primary"
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+
+                      {taskFiles.length === 0 && (
+                        <div className="col-span-full text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-xl">
+                          <Paperclip className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                          <p>No files attached yet.</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-6 border-t border-border">
+                      <h4 className="text-sm font-medium mb-4">Upload New File</h4>
+                      <FileUploader onUpload={handleFileUpload} />
                     </div>
                   </div>
                 )}

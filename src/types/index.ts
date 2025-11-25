@@ -37,10 +37,14 @@ export interface SubTask {
   title: string
   description?: string
   status: 'ongoing' | 'completed' | 'cancelled'
+  assigned_to?: string
   position: number
   created_at: string
   updated_at: string
   completed_at?: string
+  // Relations
+  assigned_user?: Profile
+  files?: SubTaskFile[]
 }
 
 export interface Task {
@@ -129,6 +133,19 @@ export interface TaskComment {
 export interface TaskFile {
   id: string
   task_id: string
+  user_id: string
+  file_name: string
+  file_path: string
+  file_size?: number
+  file_type?: string
+  created_at: string
+  // Relations
+  user?: Profile
+}
+
+export interface SubTaskFile {
+  id: string
+  sub_task_id: string
   user_id: string
   file_name: string
   file_path: string
