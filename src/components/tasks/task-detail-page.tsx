@@ -336,8 +336,10 @@ export function TaskDetailPage() {
   const addSubTask = async () => {
     if (!newSubTaskTitle.trim() || !task) return
 
+    // Optimistic update for UI
+    const tempId = `temp_${Date.now()}`
     const subTask: SubTask = {
-      id: `subtask_${Date.now()}`,
+      id: tempId,
       task_id: taskId,
       title: newSubTaskTitle.trim(),
       status: 'ongoing',
@@ -347,16 +349,19 @@ export function TaskDetailPage() {
     }
 
     try {
-      const updatedSubTasks = [...subTasks, subTask]
-
       if (isGuestMode) {
+        const updatedSubTasks = [...subTasks, subTask]
         const guestTasks = JSON.parse(localStorage.getItem('pitstop_guest_tasks') || '[]')
         const updatedTasks = guestTasks.map((t: any) =>
           t.id === taskId ? { ...t, sub_tasks: updatedSubTasks } : t
         )
         localStorage.setItem('pitstop_guest_tasks', JSON.stringify(updatedTasks))
+        setSubTasks(updatedSubTasks)
+        setNewSubTaskTitle('')
+        setShowSubTaskForm(false)
       } else {
-        const { error } = await supabase
+        // For authenticated users, insert into DB first
+        const { data, error } = await supabase
           .from('sub_tasks')
           .insert({
             task_id: taskId,
@@ -364,17 +369,25 @@ export function TaskDetailPage() {
             status: 'ongoing',
             position: subTasks.length
           })
+          .select()
+          .single()
 
-        if (error) throw error
+        if (error) {
+          console.error('Supabase insert error:', error)
+          throw error
+        }
+
+        // Update local state with returned data
+        setSubTasks([...subTasks, data])
+        setNewSubTaskTitle('')
+        setShowSubTaskForm(false)
+
+        // Reload task to ensure sync
         await loadTask()
       }
-
-      setSubTasks(updatedSubTasks)
-      setNewSubTaskTitle('')
-      setShowSubTaskForm(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to add sub-task:', error)
-      alert('Failed to add sub-task. Please try again.')
+      alert(`Failed to add sub-task: ${error?.message || 'Unknown error'}`)
     }
   }
 

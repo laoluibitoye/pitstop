@@ -404,48 +404,6 @@ export function EnhancedPublicDashboard() {
         </div>
       </div>
 
-      {/* Featured Task Banner */}
-      {filteredTasks.length > 0 && filteredTasks[0] && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-8 text-white relative overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-black/10"></div>
-          <div className="relative z-10">
-            <div className="flex items-center space-x-2 mb-2">
-              <Award className="h-5 w-5" />
-              <span className="font-semibold">Featured Task</span>
-            </div>
-            <h3 className="text-2xl font-bold mb-2">{filteredTasks[0].title}</h3>
-            <p className="text-blue-100 mb-4 line-clamp-2">{filteredTasks[0].description}</p>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4 text-sm text-blue-100">
-                <div className="flex items-center space-x-1">
-                  <Heart className="h-4 w-4" />
-                  <span>{filteredTasks[0].stats?.likes || 0}</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <MessageCircle className="h-4 w-4" />
-                  <span>{filteredTasks[0].stats?.comments || 0}</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Eye className="h-4 w-4" />
-                  <span>{filteredTasks[0].stats?.views || 0}</span>
-                </div>
-              </div>
-              <button
-                onClick={() => handleShareTask(filteredTasks[0])}
-                className="px-4 py-2 bg-white/20 backdrop-blur rounded-lg hover:bg-white/30 transition-colors flex items-center space-x-2"
-              >
-                <Share2 className="h-4 w-4" />
-                <span>View Task</span>
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
       {/* Task Grid/List */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -496,12 +454,13 @@ export function EnhancedPublicDashboard() {
             : 'space-y-4'
           }
         >
-          {filteredTasks.slice(1).map((task, index) => (
+          {filteredTasks.map((task, index) => (
             <motion.div
               key={task.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
+              onClick={() => window.location.href = `/tasks/${task.id}`}
               className={`bg-card border border-border rounded-lg p-6 hover:shadow-lg transition-all duration-200 group cursor-pointer ${viewMode === 'list' ? 'flex items-center space-x-6' : ''
                 }`}
             >
@@ -593,7 +552,13 @@ export function EnhancedPublicDashboard() {
                   <Share2 className="h-3 w-3" />
                   <span>Share</span>
                 </button>
-                <button className="px-3 py-1.5 border border-border rounded text-sm hover:bg-accent transition-colors flex items-center space-x-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    window.location.href = `/tasks/${task.id}`
+                  }}
+                  className="px-3 py-1.5 border border-border rounded text-sm hover:bg-accent transition-colors flex items-center space-x-1"
+                >
                   <Eye className="h-3 w-3" />
                   <span>View</span>
                 </button>
@@ -602,6 +567,8 @@ export function EnhancedPublicDashboard() {
           ))}
         </motion.div>
       )}
+      )
+}
 
       {/* Community CTA */}
       <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-8 text-white text-center">
@@ -630,26 +597,30 @@ export function EnhancedPublicDashboard() {
       </div>
 
       {/* Share Modal */}
-      {selectedTask && (
-        <ShareModal
-          isOpen={showShareModal}
-          onClose={() => {
-            setShowShareModal(false)
-            setSelectedTask(null)
-          }}
-          taskId={selectedTask.id}
-          taskTitle={selectedTask.title}
-        />
-      )}
+      {
+        selectedTask && (
+          <ShareModal
+            isOpen={showShareModal}
+            onClose={() => {
+              setShowShareModal(false)
+              setSelectedTask(null)
+            }}
+            taskId={selectedTask.id}
+            taskTitle={selectedTask.title}
+          />
+        )
+      }
 
       {/* Create Task Modal */}
-      {showCreateModal && (
-        <CreateTaskModal
-          onClose={() => setShowCreateModal(false)}
-          onCreateTask={createTask}
-          isGuestMode={isGuest}
-        />
-      )}
-    </div>
+      {
+        showCreateModal && (
+          <CreateTaskModal
+            onClose={() => setShowCreateModal(false)}
+            onCreateTask={createTask}
+            isGuestMode={isGuest}
+          />
+        )
+      }
+    </div >
   )
 }

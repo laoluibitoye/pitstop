@@ -200,6 +200,16 @@ const TaskItem = ({ task, onUpdateTask, onDeleteTask, viewMode, isGuestMode = fa
             >
               <Trash2 className="h-4 w-4" />
             </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                router.push(`/tasks/${task.id}?view=${viewMode}`)
+              }}
+              className="p-2 text-muted-foreground hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              title="View Details"
+            >
+              <Eye className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
