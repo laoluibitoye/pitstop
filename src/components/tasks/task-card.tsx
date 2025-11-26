@@ -100,11 +100,11 @@ export function TaskCard({
                 <div className="flex items-start justify-between mb-3 pl-3">
                     <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-xs shadow-sm">
-                            {task.created_user?.full_name?.[0] || task.created_user?.username?.[0] || 'U'}
+                            {task.guest_name?.[0] || task.created_user?.full_name?.[0] || task.created_user?.username?.[0] || 'U'}
                         </div>
                         <div className="min-w-0">
                             <p className="text-sm font-medium text-foreground truncate max-w-[120px]">
-                                {task.created_user?.full_name || task.created_user?.username || 'User'}
+                                {task.guest_name || task.created_user?.full_name || task.created_user?.username || 'User'}
                             </p>
                             <p className="text-[10px] text-muted-foreground flex items-center">
                                 <Clock className="h-3 w-3 mr-1" />
@@ -247,10 +247,10 @@ export function TaskCard({
                     <div className="col-span-6 md:col-span-3 flex items-center space-x-4">
                         <div className="flex items-center space-x-2">
                             <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-[10px]">
-                                {task.created_user?.full_name?.[0] || 'U'}
+                                {task.guest_name?.[0] || task.created_user?.full_name?.[0] || 'U'}
                             </div>
                             <span className="text-xs text-muted-foreground truncate max-w-[80px]">
-                                {task.created_user?.full_name || 'User'}
+                                {task.guest_name || task.created_user?.full_name || 'User'}
                             </span>
                         </div>
                         <div className={`px-2 py-0.5 rounded-full text-[10px] font-medium uppercase ${getPriorityColor(task.priority)}`}>

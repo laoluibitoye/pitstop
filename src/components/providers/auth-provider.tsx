@@ -15,7 +15,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, username?: string) => Promise<any>
   signOut: () => Promise<void>
   checkPermission: (permission: keyof RoleBasedAccess) => boolean
-  loginAsGuest: () => Promise<void>
+  loginAsGuest: (guestName?: string) => Promise<void>
   isGuest: boolean
 }
 
@@ -35,7 +35,7 @@ const AuthContext = createContext<AuthContextType>({
   signUp: async () => null,
   signOut: async () => { },
   checkPermission: () => false,
-  loginAsGuest: async () => { },
+  loginAsGuest: async (guestName?: string) => { },
   isGuest: false,
 })
 
@@ -240,17 +240,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserRole(null)
   }
 
-  const loginAsGuest = async () => {
+  const loginAsGuest = async (guestName?: string) => {
+    // Get name from argument or storage, default to 'Guest User'
+    const nameToUse = guestName || localStorage.getItem('pitstop_guest_name') || 'Guest User'
+
     const guestUser: User = {
       id: 'guest-user',
       app_metadata: { provider: 'guest' },
-      user_metadata: { full_name: 'Guest User' },
+      user_metadata: { full_name: nameToUse },
       aud: 'authenticated',
       created_at: new Date().toISOString(),
     }
 
-    // Persist guest session
+    // Persist guest session and name
     localStorage.setItem('pitstop_guest_mode', 'true')
+    if (guestName) {
+      localStorage.setItem('pitstop_guest_name', guestName)
+    }
 
     setUser(guestUser)
     setSession({

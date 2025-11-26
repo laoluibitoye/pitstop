@@ -58,6 +58,7 @@ export interface Task {
   created_by: string
   due_date?: string
   completed_at?: string
+  guest_name?: string
   position: number
   created_at: string
   updated_at: string

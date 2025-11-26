@@ -126,7 +126,7 @@ export function EnhancedPublicDashboard() {
             .map((t: any) => ({
               ...t,
               created_user: {
-                full_name: 'Guest User',
+                full_name: t.guest_name || localStorage.getItem('pitstop_guest_name') || 'Guest User',
                 username: 'guest',
                 avatar_url: null
               }
@@ -203,6 +203,7 @@ export function EnhancedPublicDashboard() {
         created_by: user?.id || 'guest',
         position: tasks.length,
         ...(taskData.visibility && { visibility: taskData.visibility }),
+        guest_name: isGuest ? localStorage.getItem('pitstop_guest_name') : null,
       }
 
       if (taskData.due_date && taskData.due_date.trim()) {

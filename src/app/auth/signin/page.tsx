@@ -11,6 +11,7 @@ export default function SignInPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [guestName, setGuestName] = useState('')
   const { signIn, loginAsGuest } = useAuth()
   const router = useRouter()
 
@@ -114,24 +115,33 @@ export default function SignInPage() {
             </div>
           </div>
 
-          <button
-            onClick={async () => {
-              setLoading(true)
-              try {
-                await loginAsGuest()
-                toast.success('Continued as guest!')
-                router.push('/dashboard')
-              } catch (error) {
-                toast.error('Failed to continue as guest')
-              } finally {
-                setLoading(false)
-              }
-            }}
-            className="w-full py-3 border-2 border-primary-200 dark:border-primary-800 rounded-xl font-semibold text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/50 transition-colors flex items-center justify-center space-x-2"
-          >
-            <EyeOff className="h-4 w-4" />
-            <span>Continue as Guest</span>
-          </button>
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={guestName}
+              onChange={(e) => setGuestName(e.target.value)}
+              className="neo-input w-full"
+              placeholder="Enter your name (optional)"
+            />
+            <button
+              onClick={async () => {
+                setLoading(true)
+                try {
+                  await loginAsGuest(guestName)
+                  toast.success('Continued as guest!')
+                  router.push('/dashboard')
+                } catch (error) {
+                  toast.error('Failed to continue as guest')
+                } finally {
+                  setLoading(false)
+                }
+              }}
+              className="w-full py-3 border-2 border-primary-200 dark:border-primary-800 rounded-xl font-semibold text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/50 transition-colors flex items-center justify-center space-x-2"
+            >
+              <EyeOff className="h-4 w-4" />
+              <span>Continue as Guest</span>
+            </button>
+          </div>
 
           {/* Real implementation below */}
 

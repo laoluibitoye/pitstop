@@ -79,7 +79,7 @@ export function CreateTaskModal({ onClose, onCreateTask, isGuestMode }: CreateTa
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="neo-card bg-white/90 dark:bg-dark-card/90 w-full max-w-md p-6">
+      <div className="neo-card bg-white/90 dark:bg-dark-card/90 w-full max-w-md p-6 max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-primary-900 dark:text-dark-text">Create New Task</h2>
           <button
