@@ -227,14 +227,16 @@ export default function SettingsPage() {
                     {/* Profile Avatar */}
                     <div className="flex items-center space-x-4">
                       <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                        {(editForm.full_name || user.email || 'U').charAt(0).toUpperCase()}
+                        {(editForm.full_name || user?.email || 'U').charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold text-foreground">
                           {profile?.full_name || 'No name set'}
                         </h3>
-                        <p className="text-muted-foreground">{user.email}</p>
-                        <p className="text-sm text-muted-foreground">Member since {new Date(user.created_at).toLocaleDateString()}</p>
+                        <p className="text-muted-foreground">{user?.email || 'Guest User'}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Member since {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Today'}
+                        </p>
                       </div>
                     </div>
 
@@ -247,7 +249,7 @@ export default function SettingsPage() {
                         </label>
                         <input
                           type="email"
-                          value={user.email || ''}
+                          value={user?.email || ''}
                           disabled
                           className="neo-input w-full opacity-60 cursor-not-allowed"
                         />
