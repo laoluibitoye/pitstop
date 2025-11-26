@@ -106,7 +106,7 @@ export function DashboardContent() {
 
       if (hasChanges) {
         setTasks(updatedTasks)
-        
+
         // Save to localStorage if guest mode
         if (isGuestMode) {
           localStorage.setItem('guest_tasks', JSON.stringify(updatedTasks))
@@ -134,7 +134,7 @@ export function DashboardContent() {
         // Load tasks from Supabase
         // const { data } = await db.getTasks({ search: searchQuery, ...filters })
         // setTasks(data || [])
-        
+
         // Sample tasks for testing
         const sampleTasks: Task[] = [
           {
@@ -206,7 +206,7 @@ export function DashboardContent() {
     }
   }
 
-  const createTask = (taskData: any) => {
+  const createTask = async (taskData: any) => {
     if (isGuestMode) {
       const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
       const newTask = {
@@ -499,7 +499,7 @@ export function DashboardContent() {
                   100% FREE
                 </span>
               </div>
-              
+
               <div className="text-sm text-muted-foreground text-center">
                 © 2025 PitStop. All rights reserved.
               </div>
