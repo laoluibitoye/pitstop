@@ -71,7 +71,7 @@ export function EnhancedPublicDashboard() {
     trendingCategories: []
   })
 
-  const { user, isGuest } = useAuth()
+  const { user, isGuest, guestId } = useAuth()
 
   useEffect(() => {
     if (user) {
@@ -117,24 +117,8 @@ export function EnhancedPublicDashboard() {
 
       let allTasks = data || []
 
-      // If guest, load local public tasks
-      if (isGuest) {
-        const savedTasks = localStorage.getItem('pitstop_guest_tasks')
-        if (savedTasks) {
-          const guestTasks = JSON.parse(savedTasks)
-            .filter((t: any) => t.visibility === 'public')
-            .map((t: any) => ({
-              ...t,
-              created_user: {
-                full_name: t.guest_name || localStorage.getItem('pitstop_guest_name') || 'Guest User',
-                username: 'guest',
-                avatar_url: null
-              }
-            }))
+      // No need to load from local storage anymore as guests use the DB
 
-          allTasks = [...guestTasks, ...allTasks]
-        }
-      }
 
       // Add enhanced stats with trending calculation
       const tasksWithStats = allTasks.map((task: any) => {
@@ -200,10 +184,11 @@ export function EnhancedPublicDashboard() {
         description: taskData.description || null,
         priority: taskData.priority || 'medium',
         status: 'ongoing',
-        created_by: user?.id || 'guest',
+        created_by: user?.id || null, // Allow null for guests (RLS handles this)
         position: tasks.length,
         ...(taskData.visibility && { visibility: taskData.visibility }),
         guest_name: isGuest ? localStorage.getItem('pitstop_guest_name') : null,
+        guest_id: isGuest ? guestId : null,
       }
 
       if (taskData.due_date && taskData.due_date.trim()) {
@@ -263,6 +248,33 @@ export function EnhancedPublicDashboard() {
 
   return (
     <div className="space-y-8">
+      {/* Guest Mode Banner */}
+      {isGuest && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-4"
+        >
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-full">
+              <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-amber-800 dark:text-amber-200">Guest Mode Active</h3>
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                Your tasks will be automatically deleted in 24 hours. Sign up to save them forever!
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => window.location.href = '/auth/signup'}
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap shadow-sm"
+          >
+            Sign Up to Save
+          </button>
+        </motion.div>
+      )}
+
       {/* Hero Section */}
       <div className="text-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-2xl p-8 border border-border">
         <motion.div

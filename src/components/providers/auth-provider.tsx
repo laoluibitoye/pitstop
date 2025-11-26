@@ -17,6 +17,8 @@ interface AuthContextType {
   checkPermission: (permission: keyof RoleBasedAccess) => boolean
   loginAsGuest: (guestName?: string) => Promise<void>
   isGuest: boolean
+  guestId: string | null
+  claimGuestData: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -37,6 +39,8 @@ const AuthContext = createContext<AuthContextType>({
   checkPermission: () => false,
   loginAsGuest: async (guestName?: string) => { },
   isGuest: false,
+  guestId: null,
+  claimGuestData: async () => { },
 })
 
 export const useAuth = () => {
@@ -52,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [userRole, setUserRole] = useState<'user' | 'admin' | null>(null)
+  const [guestId, setGuestId] = useState<string | null>(null)
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
@@ -121,6 +126,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUserRole(null)
           }
           setLoading(false)
+
+          // Auto-claim guest data if user logs in and has a guest session
+          if (session?.user && localStorage.getItem('pitstop_guest_id')) {
+            claimGuestData()
+          }
         }
       )
       subscription = data.subscription
@@ -244,6 +254,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Get name from argument or storage, default to 'Guest User'
     const nameToUse = guestName || localStorage.getItem('pitstop_guest_name') || 'Guest User'
 
+    // Generate or retrieve guest ID
+    let currentGuestId = localStorage.getItem('pitstop_guest_id')
+    if (!currentGuestId) {
+      currentGuestId = crypto.randomUUID()
+      localStorage.setItem('pitstop_guest_id', currentGuestId)
+    }
+    setGuestId(currentGuestId)
+
     const guestUser: User = {
       id: 'guest-user',
       app_metadata: { provider: 'guest' },
@@ -269,6 +287,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserRole('user')
   }
 
+  const claimGuestData = async () => {
+    const currentGuestId = localStorage.getItem('pitstop_guest_id')
+    if (!currentGuestId || !supabase) return
+
+    try {
+      const { error } = await supabase.rpc('claim_guest_data', {
+        current_guest_id: currentGuestId
+      })
+
+      if (error) {
+        console.error('Error claiming guest data:', error)
+      } else {
+        console.log('Guest data claimed successfully')
+        // Clear guest data from local storage
+        localStorage.removeItem('pitstop_guest_id')
+        localStorage.removeItem('pitstop_guest_mode')
+        localStorage.removeItem('pitstop_guest_name')
+        setGuestId(null)
+      }
+    } catch (err) {
+      console.error('Failed to claim guest data:', err)
+    }
+  }
+
   const value = {
     user,
     session,
@@ -280,7 +322,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     checkPermission,
     loginAsGuest,
-    isGuest: user?.id === 'guest-user'
+    isGuest: user?.id === 'guest-user',
+    guestId,
+    claimGuestData
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

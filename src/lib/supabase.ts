@@ -24,6 +24,11 @@ if (supabaseUrl && supabaseAnonKey) {
         persistSession: true,
         detectSessionInUrl: true
       },
+      global: {
+        headers: {
+          'x-guest-id': typeof window !== 'undefined' ? localStorage.getItem('pitstop_guest_id') || '' : ''
+        }
+      },
       realtime: {
         params: {
           eventsPerSecond: 10
