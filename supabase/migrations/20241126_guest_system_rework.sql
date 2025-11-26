@@ -37,8 +37,14 @@ $$;
 -- First, drop existing policies to avoid conflicts or confusion
 DROP POLICY IF EXISTS "Users can view their own tasks" ON tasks;
 DROP POLICY IF EXISTS "Users can create their own tasks" ON tasks;
+DROP POLICY IF EXISTS "Users can create tasks" ON tasks; -- Drop the one causing error
 DROP POLICY IF EXISTS "Users can update their own tasks" ON tasks;
 DROP POLICY IF EXISTS "Users can delete their own tasks" ON tasks;
+
+-- Also drop the new policies in case of re-run
+DROP POLICY IF EXISTS "Users can view own or guest tasks" ON tasks;
+DROP POLICY IF EXISTS "Users can update own or guest tasks" ON tasks;
+DROP POLICY IF EXISTS "Users can delete own or guest tasks" ON tasks;
 
 -- Policy: Users can view their own tasks OR tasks matching their guest_id header
 CREATE POLICY "Users can view own or guest tasks"
