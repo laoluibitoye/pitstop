@@ -235,6 +235,40 @@ export function PersonalDashboard() {
 
       console.log('Task created successfully:', data)
 
+      // Handle file uploads if any
+      if (taskData.files && taskData.files.length > 0) {
+        try {
+          const uploadPromises = taskData.files.map(async (file: File) => {
+            const fileName = `${Date.now()}-${file.name}`
+            const filePath = `${data.id}/${fileName}`
+
+            const { error: uploadError } = await supabase.storage
+              .from('attachments')
+              .upload(filePath, file)
+
+            if (uploadError) throw uploadError
+
+            const { error: dbError } = await supabase
+              .from('task_files')
+              .insert({
+                task_id: data.id,
+                user_id: user.id,
+                file_name: file.name,
+                file_path: filePath,
+                file_size: file.size,
+                file_type: file.type
+              })
+
+            if (dbError) throw dbError
+          })
+
+          await Promise.all(uploadPromises)
+        } catch (uploadError) {
+          console.error('Error uploading files:', uploadError)
+          // We don't fail the whole task creation if files fail, but we log it
+        }
+      }
+
       // Refresh tasks list to get the latest data
       await loadTasks()
       setShowCreateModal(false)
