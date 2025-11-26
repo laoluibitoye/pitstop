@@ -239,33 +239,37 @@ export function PersonalDashboard() {
       if (taskData.files && taskData.files.length > 0) {
         try {
           const uploadPromises = taskData.files.map(async (file: File) => {
-            const fileName = `${Date.now()}-${file.name}`
-            const filePath = `${data.id}/${fileName}`
+            try {
+              const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+              const filePath = `${data.id}/${fileName}`
 
-            const { error: uploadError } = await supabase.storage
-              .from('attachments')
-              .upload(filePath, file)
+              const { error: uploadError } = await supabase.storage
+                .from('attachments')
+                .upload(filePath, file)
 
-            if (uploadError) throw uploadError
+              if (uploadError) throw uploadError
 
-            const { error: dbError } = await supabase
-              .from('task_files')
-              .insert({
-                task_id: data.id,
-                user_id: user.id,
-                file_name: file.name,
-                file_path: filePath,
-                file_size: file.size,
-                file_type: file.type
-              })
+              const { error: dbError } = await supabase
+                .from('task_files')
+                .insert({
+                  task_id: data.id,
+                  user_id: user.id,
+                  file_name: file.name,
+                  file_path: filePath,
+                  file_size: file.size,
+                  file_type: file.type
+                })
 
-            if (dbError) throw dbError
+              if (dbError) throw dbError
+            } catch (err) {
+              console.error(`Failed to upload file ${file.name}:`, err)
+              // Continue with other files
+            }
           })
 
           await Promise.all(uploadPromises)
         } catch (uploadError) {
-          console.error('Error uploading files:', uploadError)
-          // We don't fail the whole task creation if files fail, but we log it
+          console.error('Error in file upload process:', uploadError)
         }
       }
 

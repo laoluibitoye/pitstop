@@ -94,13 +94,8 @@ export function EnhancedPublicDashboard() {
         `)
         .order('created_at', { ascending: false })
 
-      // First try with visibility filter
-      try {
-        query = query.eq('visibility', 'public')
-      } catch (e) {
-        // If visibility column doesn't exist, fall back to all tasks
-        console.warn('Visibility column not found, showing all tasks')
-      }
+      // Strictly filter for public tasks
+      query = query.eq('visibility', 'public')
 
       if (sortBy === 'popular') {
         query = query.order('likes', { ascending: false })
@@ -216,6 +211,43 @@ export function EnhancedPublicDashboard() {
       }
 
       console.log('Task created successfully:', data)
+
+      // Handle file uploads if any
+      if (taskData.files && taskData.files.length > 0) {
+        try {
+          const uploadPromises = taskData.files.map(async (file: File) => {
+            try {
+              const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+              const filePath = `${data.id}/${fileName}`
+
+              const { error: uploadError } = await supabase.storage
+                .from('attachments')
+                .upload(filePath, file)
+
+              if (uploadError) throw uploadError
+
+              const { error: dbError } = await supabase
+                .from('task_files')
+                .insert({
+                  task_id: data.id,
+                  user_id: user?.id || null, // Allow null for guests
+                  file_name: file.name,
+                  file_path: filePath,
+                  file_size: file.size,
+                  file_type: file.type
+                })
+
+              if (dbError) throw dbError
+            } catch (err) {
+              console.error(`Failed to upload file ${file.name}:`, err)
+            }
+          })
+
+          await Promise.all(uploadPromises)
+        } catch (uploadError) {
+          console.error('Error in file upload process:', uploadError)
+        }
+      }
 
       setShowCreateModal(false)
       await loadPublicTasks() // Refresh to show the new task

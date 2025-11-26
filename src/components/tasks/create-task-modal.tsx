@@ -7,7 +7,7 @@ import { FileUploader } from '@/components/common/file-uploader'
 
 interface CreateTaskModalProps {
   onClose: () => void
-  onCreateTask: (taskData: any) => void
+  onCreateTask: (taskData: any) => Promise<void>
   isGuestMode?: boolean
 }
 
@@ -48,33 +48,44 @@ export function CreateTaskModal({ onClose, onCreateTask, isGuestMode }: CreateTa
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!title.trim()) return
+    if (!title.trim() || isSubmitting) return
 
-    const taskData: any = {
-      title: title.trim(),
-      description: description.trim(),
-      priority,
-      visibility,
-      tags: tags.length > 0 ? tags : null,
-      files: files.length > 0 ? files : null,
+    setIsSubmitting(true)
+    try {
+      const taskData: any = {
+        title: title.trim(),
+        description: description.trim(),
+        priority,
+        visibility,
+        tags: tags.length > 0 ? tags : null,
+        files: files.length > 0 ? files : null,
+      }
+
+      if (dueDate) {
+        taskData.due_date = dueDate
+      }
+
+      await onCreateTask(taskData)
+
+      // Reset form
+      setTitle('')
+      setDescription('')
+      setPriority('medium')
+      setDueDate('')
+      setVisibility('private')
+      setTags([])
+      setNewTag('')
+      setFiles([])
+    } catch (error) {
+      console.error('Error creating task:', error)
+    } finally {
+      setIsSubmitting(false)
     }
-
-    if (dueDate) {
-      taskData.due_date = dueDate
-    }
-
-    onCreateTask(taskData)
-    setTitle('')
-    setDescription('')
-    setPriority('medium')
-    setDueDate('')
-    setVisibility('private')
-    setTags([])
-    setNewTag('')
-    setFiles([])
   };
 
   return (
@@ -307,11 +318,11 @@ export function CreateTaskModal({ onClose, onCreateTask, isGuestMode }: CreateTa
             </button>
             <button
               type="submit"
-              disabled={!title.trim()}
-              className="flex-1 neo-button flex items-center justify-center space-x-2"
+              disabled={!title.trim() || isSubmitting}
+              className="flex-1 neo-button flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus className="h-4 w-4" />
-              <span>Create Task</span>
+              <span>{isSubmitting ? 'Creating...' : 'Create Task'}</span>
             </button>
           </div>
         </form>

@@ -34,7 +34,7 @@ export default function SettingsPage() {
     username: ''
   })
 
-  const { user, signOut } = useAuth()
+  const { user, signOut, isGuest } = useAuth()
   const { theme, setTheme } = useTheme()
   const router = useRouter()
 
@@ -48,7 +48,7 @@ export default function SettingsPage() {
 
   const loadProfile = async () => {
     if (!user) return
-    
+
     setLoading(true)
     try {
       const { data, error } = await supabase
@@ -120,7 +120,7 @@ export default function SettingsPage() {
     { id: 'privacy', label: 'Privacy', icon: Shield }
   ]
 
-  if (!user) {
+  if (!user && !isGuest) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -150,7 +150,7 @@ export default function SettingsPage() {
             >
               <X className="h-4 w-4" />
             </button>
-            
+
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
                 <Settings className="h-4 w-4 text-white" />
@@ -175,11 +175,10 @@ export default function SettingsPage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                      activeTab === tab.id
-                        ? 'bg-blue-500 text-white'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                    }`}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === tab.id
+                      ? 'bg-blue-500 text-white'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                      }`}
                   >
                     <tab.icon className="h-4 w-4" />
                     <span>{tab.label}</span>
@@ -290,24 +289,44 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Account Status */}
-                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                      <div className="flex items-center space-x-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        <span className="text-green-800 dark:text-green-200 font-medium">
-                          Account Active
-                        </span>
+                    {isGuest ? (
+                      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                        <div className="flex items-center space-x-2">
+                          <Shield className="h-5 w-5 text-amber-600" />
+                          <span className="text-amber-800 dark:text-amber-200 font-medium">
+                            Guest Account
+                          </span>
+                        </div>
+                        <p className="text-amber-700 dark:text-amber-300 text-sm mt-1">
+                          You are currently using a temporary guest account. Your data will be deleted in 24 hours.
+                        </p>
+                        <button
+                          onClick={() => router.push('/auth/signup')}
+                          className="mt-3 text-sm font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 underline"
+                        >
+                          Create an account to save your data
+                        </button>
                       </div>
-                      <p className="text-green-700 dark:text-green-300 text-sm mt-1">
-                        Your account is fully active with all features enabled.
-                      </p>
-                    </div>
+                    ) : (
+                      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          <span className="text-green-800 dark:text-green-200 font-medium">
+                            Account Active
+                          </span>
+                        </div>
+                        <p className="text-green-700 dark:text-green-300 text-sm mt-1">
+                          Your account is fully active with all features enabled.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {activeTab === 'notifications' && (
                   <div className="space-y-6">
                     <h2 className="text-xl font-semibold text-foreground">Notification Preferences</h2>
-                    
+
                     <div className="space-y-4">
                       <div className="flex items-center justify-between p-4 border border-border rounded-lg">
                         <div>
@@ -348,7 +367,7 @@ export default function SettingsPage() {
                 {activeTab === 'privacy' && (
                   <div className="space-y-6">
                     <h2 className="text-xl font-semibold text-foreground">Privacy Settings</h2>
-                    
+
                     <div className="space-y-4">
                       <div className="flex items-center justify-between p-4 border border-border rounded-lg">
                         <div>
