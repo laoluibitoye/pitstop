@@ -72,6 +72,9 @@ export function TaskDetailPage() {
   const [taskFiles, setTaskFiles] = useState<TaskFile[]>([])
   const [subTaskFiles, setSubTaskFiles] = useState<Record<string, SubTaskFile[]>>({})
   const [profiles, setProfiles] = useState<Profile[]>([])
+  const [previewFile, setPreviewFile] = useState<TaskFile | null>(null)
+  const [commentFiles, setCommentFiles] = useState<Record<string, TaskFile[]>>({})
+  const [commentFilesToUpload, setCommentFilesToUpload] = useState<File[]>([])
 
   const taskId = params?.taskId as string
   const isGuestMode = searchParams.get('mode') === 'guest'
@@ -195,6 +198,25 @@ export function TaskDetailPage() {
                 filesMap[file.sub_task_id].push(file)
               })
               setSubTaskFiles(filesMap)
+            }
+
+            // Fetch comment files
+            if (commentsData && commentsData.length > 0) {
+              const { data: cFilesData } = await supabase
+                .from('comment_files')
+                .select(`
+                  *,
+                  user:profiles(*)
+                `)
+                .in('comment_id', commentsData.map((c: any) => c.id))
+                .order('created_at', { ascending: false })
+
+              const cFilesMap: Record<string, TaskFile[]> = {}
+              cFilesData?.forEach((file: any) => {
+                if (!cFilesMap[file.comment_id]) cFilesMap[file.comment_id] = []
+                cFilesMap[file.comment_id].push(file)
+              })
+              setCommentFiles(cFilesMap)
             }
           }
         } catch (dbError) {
@@ -336,11 +358,54 @@ export function TaskDetailPage() {
     }
   }
 
-  const addComment = async () => {
-    if (!newComment.trim() || !task) return
+  const handleCommentFileUpload = async (commentId: string, file: File) => {
+    if (!user || isGuestMode) return
 
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Math.random()}.${fileExt}`
+      const filePath = `comments/${commentId}/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('attachments')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      const { data, error: dbError } = await supabase
+        .from('comment_files')
+        .insert({
+          comment_id: commentId,
+          user_id: user.id,
+          file_name: file.name,
+          file_path: filePath,
+          file_size: file.size,
+          file_type: file.type
+        })
+        .select(`
+          *,
+          user:profiles(*)
+        `)
+        .single()
+
+      if (dbError) throw dbError
+
+      setCommentFiles(prev => ({
+        ...prev,
+        [commentId]: [data, ...(prev[commentId] || [])]
+      }))
+    } catch (error: any) {
+      console.error('Error uploading comment file:', error)
+      alert(`Error uploading file: ${error.message}`)
+    }
+  }
+
+  const addComment = async () => {
+    if ((!newComment.trim() && commentFilesToUpload.length === 0) || !task) return
+
+    const commentId = `comment_${Date.now()}`
     const comment: TaskComment = {
-      id: `comment_${Date.now()}`,
+      id: commentId,
       task_id: taskId,
       user_id: user?.id || 'guest',
       content: newComment.trim(),
@@ -366,20 +431,31 @@ export function TaskDetailPage() {
         )
         localStorage.setItem('pitstop_guest_tasks', JSON.stringify(updatedTasks))
       } else {
-        const { error } = await supabase
+        const { data: newCommentData, error } = await supabase
           .from('task_comments')
           .insert({
             task_id: taskId,
             user_id: user?.id,
             content: newComment.trim()
           })
+          .select()
+          .single()
 
         if (error) throw error
+
+        // Upload files if any
+        if (commentFilesToUpload.length > 0 && newCommentData) {
+          await Promise.all(commentFilesToUpload.map(file =>
+            handleCommentFileUpload(newCommentData.id, file)
+          ))
+        }
+
         await loadTask()
       }
 
       setComments(updatedComments)
       setNewComment('')
+      setCommentFilesToUpload([])
       setShowCommentForm(false)
     } catch (error) {
       console.error('Failed to add comment:', error)
@@ -1267,139 +1343,267 @@ export function TaskDetailPage() {
                         <div className="w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
                           {user?.user_metadata?.full_name?.charAt(0) || 'U'}
                         </div>
-                        <div className="flex-1 space-y-3">
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="bg-card border border-border rounded-xl p-4 space-y-4"
+                        >
                           <textarea
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
-                            className="w-full h-20 bg-transparent border border-border rounded-lg p-3 outline-none resize-none"
-                            placeholder="Add a comment..."
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && e.ctrlKey) {
-                                addComment()
-                              } else if (e.key === 'Escape') {
-                                setShowCommentForm(false)
-                                setNewComment('')
-                              }
-                            }}
-                            autoFocus
+                            placeholder="Write a comment..."
+                            className="w-full h-32 bg-background border border-border rounded-lg p-3 outline-none focus:ring-2 focus:ring-primary/50 resize-none"
                           />
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={addComment}
-                              className="btn-primary"
-                              disabled={!newComment.trim()}
-                            >
-                              Add Comment
-                            </button>
+
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-muted-foreground">Attach Files</label>
+                            <FileUploader
+                              onUpload={(file) => setCommentFilesToUpload(prev => [...prev, file])}
+                            />
+                            {commentFilesToUpload.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                {commentFilesToUpload.map((file, index) => (
+                                  <div key={index} className="flex items-center gap-2 bg-accent/50 px-3 py-1.5 rounded-lg text-sm">
+                                    <span className="truncate max-w-[150px]">{file.name}</span>
+                                    <button
+                                      onClick={() => setCommentFilesToUpload(prev => prev.filter((_, i) => i !== index))}
+                                      className="text-muted-foreground hover:text-destructive"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex justify-end gap-2">
                             <button
                               onClick={() => {
                                 setShowCommentForm(false)
                                 setNewComment('')
+                                setCommentFilesToUpload([])
                               }}
-                              className="btn-secondary"
+                              className="btn-ghost"
                             >
                               Cancel
                             </button>
+                            <button
+                              onClick={addComment}
+                              disabled={!newComment.trim() && commentFilesToUpload.length === 0}
+                              className="btn-primary"
+                            >
+                              Post Comment
+                            </button>
                           </div>
-                        </div>
-                      </div>
-                    </div>
+                        </motion.div>
                   )}
 
-                  <div className="space-y-4">
-                    {comments.map((comment) => (
-                      <div
-                        key={comment.id}
-                        className="flex items-start space-x-4 p-4 bg-accent/20 rounded-lg"
-                      >
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                          {comment.user?.full_name?.charAt(0) || 'U'}
+                        <div className="space-y-4">
+                          {comments.map((comment) => (
+                            <div key={comment.id} className="bg-card border border-border rounded-xl p-4 space-y-3">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground font-medium text-sm">
+                                    {comment.user?.full_name?.[0] || comment.user?.email?.[0] || 'G'}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm">
+                                      {comment.user?.full_name || comment.user?.email || 'Guest User'}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {new Date(comment.created_at).toLocaleString()}
+                                    </p>
+                                  </div>
+                                </div>
+                                {(user?.id === comment.user_id || isGuestMode) && (
+                                  <button
+                                    onClick={() => deleteComment(comment.id)}
+                                    className="text-muted-foreground hover:text-destructive transition-colors"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                )}
+                              </div>
+                              <p className="text-foreground whitespace-pre-wrap pl-11">{comment.content}</p>
+
+                              {/* Comment Files */}
+                              {commentFiles[comment.id] && commentFiles[comment.id].length > 0 && (
+                                <div className="pl-11 mt-3">
+                                  <div className="flex flex-wrap gap-2">
+                                    {commentFiles[comment.id].map((file) => {
+                                      const isImage = file.file_type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.file_name)
+                                      return (
+                                        <div key={file.id} className="group relative flex items-center gap-2 p-2 bg-muted/30 border border-border rounded-lg hover:bg-muted/50 transition-colors max-w-xs">
+                                          <div
+                                            className="cursor-pointer"
+                                            onClick={() => isImage && setPreviewFile(file)}
+                                          >
+                                            {isImage ? (
+                                              <div className="w-8 h-8 rounded overflow-hidden bg-muted">
+                                                <img
+                                                  src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/attachments/${file.file_path}`}
+                                                  alt={file.file_name}
+                                                  className="w-full h-full object-cover"
+                                                />
+                                              </div>
+                                            ) : (
+                                              <FileIcon className="h-8 w-8 text-muted-foreground p-1" />
+                                            )}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-medium truncate" title={file.file_name}>{file.file_name}</p>
+                                            <p className="text-[10px] text-muted-foreground">{(file.file_size || 0 / 1024 / 1024).toFixed(2)} MB</p>
+                                          </div>
+                                          <button
+                                            onClick={() => downloadFile(file.file_path, file.file_name)}
+                                            className="p-1.5 hover:bg-background rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                                          >
+                                            <Download className="h-3 w-3" />
+                                          </button>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+
+                          {comments.length === 0 && !showCommentForm && (
+                            <div className="text-center py-12 text-muted-foreground">
+                              <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                              <p>No comments yet. Start the conversation!</p>
+                            </div>
+                          )}
                         </div>
-
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className="font-medium text-foreground">
-                              {comment.user?.full_name || 'Unknown User'}
-                            </span>
-                            <span className="text-sm text-muted-foreground">
-                              {formatDate(comment.created_at)}
-                            </span>
-                          </div>
-                          <p className="text-muted-foreground">{comment.content}</p>
-                        </div>
-
-                        <button
-                          onClick={() => deleteComment(comment.id)}
-                          className="p-1 text-red-500 hover:text-red-600 transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
                       </div>
-                    ))}
-
-                    {comments.length === 0 && (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>No comments yet. Start the conversation!</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
               )}
 
-              {/* Files Tab */}
-              {activeTab === 'files' && (
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-foreground">Files & Attachments</h3>
-                  </div>
+                      {/* Files Tab */}
+                      {activeTab === 'files' && (
+                        <div className="space-y-6">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-foreground">Files & Attachments</h3>
+                          </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {taskFiles.map((file) => (
-                      <div key={file.id} className="group relative flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:shadow-md transition-all">
-                        <div className="p-3 bg-primary/10 rounded-lg">
-                          <FileIcon className="h-6 w-6 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate" title={file.file_name}>
-                            {file.file_name}
-                          </p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                            <span>{(file.file_size || 0 / 1024 / 1024).toFixed(2)} MB</span>
-                            <span>•</span>
-                            <span>{new Date(file.created_at).toLocaleDateString()}</span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {taskFiles.map((file) => {
+                              const isImage = file.file_type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.file_name)
+
+                              return (
+                                <div key={file.id} className="group relative flex flex-col gap-3 p-4 bg-card border border-border rounded-xl hover:shadow-md transition-all">
+                                  <div className="relative aspect-video w-full bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center">
+                                    {isImage ? (
+                                      <>
+                                        <img
+                                          src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/attachments/${file.file_path}`}
+                                          alt={file.file_name}
+                                          className="w-full h-full object-cover"
+                                        />
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                          <button
+                                            onClick={() => setPreviewFile(file)}
+                                            className="p-2 bg-white/90 rounded-full shadow-sm hover:bg-white transition-colors"
+                                          >
+                                            <Search className="h-4 w-4 text-gray-700" />
+                                          </button>
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <FileIcon className="h-12 w-12 text-muted-foreground/50" />
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <p className="font-medium truncate text-sm" title={file.file_name}>
+                                        {file.file_name}
+                                      </p>
+                                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                        <span>{(file.file_size || 0 / 1024 / 1024).toFixed(2)} MB</span>
+                                        <span>•</span>
+                                        <span>{new Date(file.created_at).toLocaleDateString()}</span>
+                                      </div>
+                                    </div>
+                                    <button
+                                      onClick={() => downloadFile(file.file_path, file.file_name)}
+                                      className="p-2 hover:bg-accent rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                                      title="Download"
+                                    >
+                                      <Download className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              )
+                            })}
+
+                            {taskFiles.length === 0 && (
+                              <div className="col-span-full text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-xl">
+                                <Paperclip className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                                <p>No files attached yet.</p>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="pt-6 border-t border-border">
+                            <h4 className="text-sm font-medium mb-4">Upload New File</h4>
+                            <FileUploader onUpload={handleFileUpload} />
                           </div>
                         </div>
-                        <button
-                          onClick={() => downloadFile(file.file_path, file.file_name)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-background shadow-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:text-primary"
-                        >
-                          <Download className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-
-                    {taskFiles.length === 0 && (
-                      <div className="col-span-full text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-xl">
-                        <Paperclip className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                        <p>No files attached yet.</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pt-6 border-t border-border">
-                    <h4 className="text-sm font-medium mb-4">Upload New File</h4>
-                    <FileUploader onUpload={handleFileUpload} />
-                  </div>
-                </div>
-              )}
-            </div>
+                      )}
+                    </div>
           </div>
         </div>
 
-      </main>
+          </main>
+
+          {/* File Preview Modal */}
+          <AnimatePresence>
+            {previewFile && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+                onClick={() => setPreviewFile(null)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="relative max-w-5xl w-full max-h-[90vh] bg-transparent rounded-lg overflow-hidden flex flex-col items-center justify-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={() => setPreviewFile(null)}
+                    className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors z-10"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+
+                  <img
+                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/attachments/${previewFile.file_path}`}
+                    alt={previewFile.file_name}
+                    className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+                  />
+
+                  <div className="mt-4 flex items-center gap-4">
+                    <span className="text-white font-medium">{previewFile.file_name}</span>
+                    <button
+                      onClick={() => downloadFile(previewFile.file_path, previewFile.file_name)}
+                      className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors flex items-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
 
-    </div>
-  )
+        </div>
+        )
 }
