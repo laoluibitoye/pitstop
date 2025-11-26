@@ -15,6 +15,7 @@ import {
   Menu,
   X
 } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { SignInButton } from '@/components/auth/sign-in-button'
 import { SignUpButton } from '@/components/auth/sign-up-button'
 import { useAuth } from '@/components/providers/auth-provider'
@@ -85,29 +86,29 @@ export default function Home() {
               <div className="flex flex-col space-y-4">
                 {/* Mobile Navigation Links */}
                 <nav className="flex flex-col space-y-2">
-                  <a 
-                    href="#features" 
+                  <a
+                    href="#features"
                     className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors py-2"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Features
                   </a>
-                  <a 
-                    href="#how-it-works" 
+                  <a
+                    href="#how-it-works"
                     className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors py-2"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     How It Works
                   </a>
-                  <a 
-                    href="#use-cases" 
+                  <a
+                    href="#use-cases"
                     className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors py-2"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Use Cases
                   </a>
-                  <a 
-                    href="#why-choose" 
+                  <a
+                    href="#why-choose"
                     className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors py-2"
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -146,32 +147,52 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <section className="pt-16 pb-24">
+      <section className="pt-16 pb-24 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="inline-flex items-center px-4 py-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full text-sm font-semibold mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="inline-flex items-center px-4 py-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full text-sm font-semibold mb-8"
+            >
               <CheckCircle className="h-4 w-4 mr-2" />
               Completely Free Forever • No Hidden Costs
-            </div>
-            
+            </motion.div>
+
             <h1 className="fluid-text-5xl md:fluid-text-7xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
               The Ultimate
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Task Collaboration</span>
               Platform
             </h1>
-            
+
             <p className="fluid-text-xl md:fluid-text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-4xl mx-auto leading-relaxed">
-              Streamline your team's productivity with real-time collaborative task management. 
-              <strong className="text-gray-900 dark:text-white"> Completely free</strong> with premium features, 
+              Streamline your team's productivity with real-time collaborative task management.
+              <strong className="text-gray-900 dark:text-white"> Completely free</strong> with premium features,
               cross-platform accessibility, and intuitive workflow management.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
+            >
+              <SignInButton className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-blue-600 px-8 py-4 text-lg font-semibold rounded-xl flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-all" />
               <SignUpButton className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-4 text-lg font-semibold rounded-xl flex items-center justify-center transform hover:scale-105 transition-all" />
-              <SignUpButton className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-blue-600 px-8 py-4 text-lg font-semibold rounded-xl flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-all" />
-            </div>
+            </motion.div>
 
-            <div className="flex justify-center items-center space-x-8 text-sm text-gray-600 dark:text-gray-300">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="flex justify-center items-center space-x-8 text-sm text-gray-600 dark:text-gray-300"
+            >
               <div className="flex items-center">
                 <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
                 No Credit Card Required
@@ -184,8 +205,8 @@ export default function Home() {
                 <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
                 Free Forever
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
@@ -194,7 +215,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
-              Powerful Features for 
+              Powerful Features for
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600"> Modern Teams</span>
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
@@ -203,37 +224,27 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center">
-                <Users className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Real-Time Collaboration</h3>
-              <p className="text-gray-600 dark:text-gray-300">See live updates as your team works. Instant synchronization across all devices.</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center">
-                <Zap className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Intuitive Workflows</h3>
-              <p className="text-gray-600 dark:text-gray-300">Drag-and-drop task management with smart automation and custom workflows.</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center">
-                <Smartphone className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Cross-Platform Access</h3>
-              <p className="text-gray-600 dark:text-gray-300">Work seamlessly on web, mobile, and desktop with full feature parity.</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center">
-                <TrendingUp className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Advanced Analytics</h3>
-              <p className="text-gray-600 dark:text-gray-300">Track team performance, project progress, and identify bottlenecks instantly.</p>
-            </div>
+            {[
+              { icon: Users, title: "Real-Time Collaboration", desc: "See live updates as your team works. Instant synchronization across all devices." },
+              { icon: Zap, title: "Intuitive Workflows", desc: "Drag-and-drop task management with smart automation and custom workflows." },
+              { icon: Smartphone, title: "Cross-Platform Access", desc: "Work seamlessly on web, mobile, and desktop with full feature parity." },
+              { icon: TrendingUp, title: "Advanced Analytics", desc: "Track team performance, project progress, and identify bottlenecks instantly." }
+            ].map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="text-center group"
+              >
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <feature.icon className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">{feature.title}</h3>
+                <p className="text-gray-600 dark:text-gray-300">{feature.desc}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
@@ -553,7 +564,7 @@ export default function Home() {
                 The ultimate free collaborative task management platform for modern teams.
               </p>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Product</h4>
               <ul className="space-y-2 text-sm text-gray-400">
@@ -563,7 +574,7 @@ export default function Home() {
                 <li><a href="#" className="hover:text-white transition-colors">Integrations</a></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Company</h4>
               <ul className="space-y-2 text-sm text-gray-400">
@@ -573,7 +584,7 @@ export default function Home() {
                 <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Support</h4>
               <ul className="space-y-2 text-sm text-gray-400">
@@ -584,7 +595,7 @@ export default function Home() {
               </ul>
             </div>
           </div>
-          
+
           <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-sm">
               © 2025 PitStop. All rights reserved. Made with ❤️ for productive teams worldwide.
