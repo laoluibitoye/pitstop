@@ -421,7 +421,7 @@ export function DashboardContentWithSuspense({
     }
   }
 
-  const createTask = (taskData: any) => {
+  const createTask = async (taskData: any) => {
     if (isGuestMode) {
       const guestTasks = JSON.parse(localStorage.getItem('guest_tasks') || '[]')
       const newTask = {
