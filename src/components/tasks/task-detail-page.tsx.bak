@@ -766,37 +766,40 @@ export function TaskDetailPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="loading-spinner">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  /*
+    if (loading) {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="loading-spinner">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
         </div>
-      </div>
-    )
-  }
+      )
+    }
+  */
 
-  if (!task) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-2">Task Not Found</h1>
-          <p className="text-muted-foreground mb-4">The task you're looking for doesn't exist.</p>
-          <button
-            onClick={() => router.back()}
-            className="btn-primary"
-          >
-            Go Back
-          </button>
+  /*
+    if (!task) {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-foreground mb-2">Task Not Found</h1>
+            <p className="text-muted-foreground mb-4">The task you're looking for doesn't exist.</p>
+            <button
+              onClick={() => router.back()}
+              className="btn-primary"
+            >
+              Go Back
+            </button>
+          </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
+  */
 
-  const totalSubTasks = subTasks.length;
-  const completedSubTasks = subTasks.filter(st => st.status === 'completed').length;
-  const subTaskProgress = totalSubTasks === 0 ? 0 : (completedSubTasks / totalSubTasks) * 100;
-
+  const totalSubTasks = 0; // subTasks.length;
+  const completedSubTasks = 0; // subTasks.filter(st => st.status === 'completed').length;
+  const subTaskProgress = 0; // totalSubTasks > 0 ? (completedSubTasks / totalSubTasks) * 100 : 0;
 
   return (
     <div className="space-y-6">
@@ -1359,7 +1362,7 @@ export function TaskDetailPage() {
                           <div className="space-y-2">
                             <label className="text-sm font-medium text-muted-foreground">Attach Files</label>
                             <FileUploader
-                              onUpload={async (file) => setCommentFilesToUpload(prev => [...prev, file])}
+                              onUpload={(file) => setCommentFilesToUpload(prev => [...prev, file])}
                             />
                             {commentFilesToUpload.length > 0 && (
                               <div className="flex flex-wrap gap-2 mt-2">
@@ -1398,215 +1401,213 @@ export function TaskDetailPage() {
                             </button>
                           </div>
                         </motion.div>
-                      </div>
-                    </div>
                   )}
 
-                  <div className="space-y-4">
-                    {comments.map((comment) => (
-                      <div key={comment.id} className="bg-card border border-border rounded-xl p-4 space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground font-medium text-sm">
-                              {comment.user?.full_name?.[0] || comment.user?.email?.[0] || 'G'}
+                        <div className="space-y-4">
+                          {comments.map((comment) => (
+                            <div key={comment.id} className="bg-card border border-border rounded-xl p-4 space-y-3">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground font-medium text-sm">
+                                    {comment.user?.full_name?.[0] || comment.user?.email?.[0] || 'G'}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm">
+                                      {comment.user?.full_name || comment.user?.email || 'Guest User'}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {new Date(comment.created_at).toLocaleString()}
+                                    </p>
+                                  </div>
+                                </div>
+                                {(user?.id === comment.user_id || isGuestMode) && (
+                                  <button
+                                    onClick={() => deleteComment(comment.id)}
+                                    className="text-muted-foreground hover:text-destructive transition-colors"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                )}
+                              </div>
+                              <p className="text-foreground whitespace-pre-wrap pl-11">{comment.content}</p>
+
+                              {/* Comment Files */}
+                              {commentFiles[comment.id] && commentFiles[comment.id].length > 0 && (
+                                <div className="pl-11 mt-3">
+                                  <div className="flex flex-wrap gap-2">
+                                    {commentFiles[comment.id].map((file) => {
+                                      const isImage = file.file_type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.file_name)
+                                      return (
+                                        <div key={file.id} className="group relative flex items-center gap-2 p-2 bg-muted/30 border border-border rounded-lg hover:bg-muted/50 transition-colors max-w-xs">
+                                          <div
+                                            className="cursor-pointer"
+                                            onClick={() => isImage && setPreviewFile(file)}
+                                          >
+                                            {isImage ? (
+                                              <div className="w-8 h-8 rounded overflow-hidden bg-muted">
+                                                <img
+                                                  src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/attachments/${file.file_path}`}
+                                                  alt={file.file_name}
+                                                  className="w-full h-full object-cover"
+                                                />
+                                              </div>
+                                            ) : (
+                                              <FileIcon className="h-8 w-8 text-muted-foreground p-1" />
+                                            )}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-medium truncate" title={file.file_name}>{file.file_name}</p>
+                                            <p className="text-[10px] text-muted-foreground">{(file.file_size || 0 / 1024 / 1024).toFixed(2)} MB</p>
+                                          </div>
+                                          <button
+                                            onClick={() => downloadFile(file.file_path, file.file_name)}
+                                            className="p-1.5 hover:bg-background rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                                          >
+                                            <Download className="h-3 w-3" />
+                                          </button>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <div>
-                              <p className="font-medium text-sm">
-                                {comment.user?.full_name || comment.user?.email || 'Guest User'}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(comment.created_at).toLocaleString()}
-                              </p>
+                          ))}
+
+                          {comments.length === 0 && !showCommentForm && (
+                            <div className="text-center py-12 text-muted-foreground">
+                              <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                              <p>No comments yet. Start the conversation!</p>
                             </div>
-                          </div>
-                          {(user?.id === comment.user_id || isGuestMode) && (
-                            <button
-                              onClick={() => deleteComment(comment.id)}
-                              className="text-muted-foreground hover:text-destructive transition-colors"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
                           )}
                         </div>
-                        <p className="text-foreground whitespace-pre-wrap pl-11">{comment.content}</p>
+                      </div>
+              )}
 
-                        {/* Comment Files */}
-                        {commentFiles[comment.id] && commentFiles[comment.id].length > 0 && (
-                          <div className="pl-11 mt-3">
-                            <div className="flex flex-wrap gap-2">
-                              {commentFiles[comment.id].map((file) => {
-                                const isImage = file.file_type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.file_name)
-                                return (
-                                  <div key={file.id} className="group relative flex items-center gap-2 p-2 bg-muted/30 border border-border rounded-lg hover:bg-muted/50 transition-colors max-w-xs">
-                                    <div
-                                      className="cursor-pointer"
-                                      onClick={() => isImage && setPreviewFile(file)}
-                                    >
-                                      {isImage ? (
-                                        <div className="w-8 h-8 rounded overflow-hidden bg-muted">
-                                          <img
-                                            src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/attachments/${file.file_path}`}
-                                            alt={file.file_name}
-                                            className="w-full h-full object-cover"
-                                          />
+                      {/* Files Tab */}
+                      {activeTab === 'files' && (
+                        <div className="space-y-6">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-foreground">Files & Attachments</h3>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {taskFiles.map((file) => {
+                              const isImage = file.file_type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.file_name)
+
+                              return (
+                                <div key={file.id} className="group relative flex flex-col gap-3 p-4 bg-card border border-border rounded-xl hover:shadow-md transition-all">
+                                  <div className="relative aspect-video w-full bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center">
+                                    {isImage ? (
+                                      <>
+                                        <img
+                                          src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/attachments/${file.file_path}`}
+                                          alt={file.file_name}
+                                          className="w-full h-full object-cover"
+                                        />
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                          <button
+                                            onClick={() => setPreviewFile(file)}
+                                            className="p-2 bg-white/90 rounded-full shadow-sm hover:bg-white transition-colors"
+                                          >
+                                            <Search className="h-4 w-4 text-gray-700" />
+                                          </button>
                                         </div>
-                                      ) : (
-                                        <FileIcon className="h-8 w-8 text-muted-foreground p-1" />
-                                      )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-xs font-medium truncate" title={file.file_name}>{file.file_name}</p>
-                                      <p className="text-[10px] text-muted-foreground">{(file.file_size || 0 / 1024 / 1024).toFixed(2)} MB</p>
+                                      </>
+                                    ) : (
+                                      <FileIcon className="h-12 w-12 text-muted-foreground/50" />
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <p className="font-medium truncate text-sm" title={file.file_name}>
+                                        {file.file_name}
+                                      </p>
+                                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                        <span>{(file.file_size || 0 / 1024 / 1024).toFixed(2)} MB</span>
+                                        <span>•</span>
+                                        <span>{new Date(file.created_at).toLocaleDateString()}</span>
+                                      </div>
                                     </div>
                                     <button
                                       onClick={() => downloadFile(file.file_path, file.file_name)}
-                                      className="p-1.5 hover:bg-background rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                                      className="p-2 hover:bg-accent rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                                      title="Download"
                                     >
-                                      <Download className="h-3 w-3" />
+                                      <Download className="h-4 w-4" />
                                     </button>
                                   </div>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-
-                    {comments.length === 0 && !showCommentForm && (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                        <p>No comments yet. Start the conversation!</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Files Tab */}
-              {activeTab === 'files' && (
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-foreground">Files & Attachments</h3>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {taskFiles.map((file) => {
-                      const isImage = file.file_type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.file_name)
-
-                      return (
-                        <div key={file.id} className="group relative flex flex-col gap-3 p-4 bg-card border border-border rounded-xl hover:shadow-md transition-all">
-                          <div className="relative aspect-video w-full bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center">
-                            {isImage ? (
-                              <>
-                                <img
-                                  src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/attachments/${file.file_path}`}
-                                  alt={file.file_name}
-                                  className="w-full h-full object-cover"
-                                />
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                  <button
-                                    onClick={() => setPreviewFile(file)}
-                                    className="p-2 bg-white/90 rounded-full shadow-sm hover:bg-white transition-colors"
-                                  >
-                                    <Search className="h-4 w-4 text-gray-700" />
-                                  </button>
                                 </div>
-                              </>
-                            ) : (
-                              <FileIcon className="h-12 w-12 text-muted-foreground/50" />
+                              )
+                            })}
+
+                            {taskFiles.length === 0 && (
+                              <div className="col-span-full text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-xl">
+                                <Paperclip className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                                <p>No files attached yet.</p>
+                              </div>
                             )}
                           </div>
 
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="font-medium truncate text-sm" title={file.file_name}>
-                                {file.file_name}
-                              </p>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                <span>{(file.file_size || 0 / 1024 / 1024).toFixed(2)} MB</span>
-                                <span>•</span>
-                                <span>{new Date(file.created_at).toLocaleDateString()}</span>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => downloadFile(file.file_path, file.file_name)}
-                              className="p-2 hover:bg-accent rounded-lg transition-colors text-muted-foreground hover:text-foreground"
-                              title="Download"
-                            >
-                              <Download className="h-4 w-4" />
-                            </button>
+                          <div className="pt-6 border-t border-border">
+                            <h4 className="text-sm font-medium mb-4">Upload New File</h4>
+                            <FileUploader onUpload={handleFileUpload} />
                           </div>
                         </div>
-                      )
-                    })}
-
-                    {taskFiles.length === 0 && (
-                      <div className="col-span-full text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-xl">
-                        <Paperclip className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                        <p>No files attached yet.</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pt-6 border-t border-border">
-                    <h4 className="text-sm font-medium mb-4">Upload New File</h4>
-                    <FileUploader onUpload={handleFileUpload} />
-                  </div>
-                </div>
-              )}
-            </div>
+                      )}
+                    </div>
           </div>
         </div>
 
-      </main>
+          </main>
 
-      {/* File Preview Modal */}
-      <AnimatePresence>
-        {previewFile && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-            onClick={() => setPreviewFile(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative max-w-5xl w-full max-h-[90vh] bg-transparent rounded-lg overflow-hidden flex flex-col items-center justify-center"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
+          {/* File Preview Modal */}
+          <AnimatePresence>
+            {previewFile && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
                 onClick={() => setPreviewFile(null)}
-                className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors z-10"
               >
-                <X className="h-6 w-6" />
-              </button>
-
-              <img
-                src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/attachments/${previewFile.file_path}`}
-                alt={previewFile.file_name}
-                className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
-              />
-
-              <div className="mt-4 flex items-center gap-4">
-                <span className="text-white font-medium">{previewFile.file_name}</span>
-                <button
-                  onClick={() => downloadFile(previewFile.file_path, previewFile.file_name)}
-                  className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors flex items-center gap-2"
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="relative max-w-5xl w-full max-h-[90vh] bg-transparent rounded-lg overflow-hidden flex flex-col items-center justify-center"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <Download className="h-4 w-4" />
-                  Download
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  <button
+                    onClick={() => setPreviewFile(null)}
+                    className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors z-10"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+
+                  <img
+                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/attachments/${previewFile.file_path}`}
+                    alt={previewFile.file_name}
+                    className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+                  />
+
+                  <div className="mt-4 flex items-center gap-4">
+                    <span className="text-white font-medium">{previewFile.file_name}</span>
+                    <button
+                      onClick={() => downloadFile(previewFile.file_path, previewFile.file_name)}
+                      className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors flex items-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
 
-    </div>
-  )
+        </div>
+        )
 }
