@@ -22,6 +22,7 @@ import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Profile } from '@/types'
+import { NotificationSettings } from '@/components/notifications/notification-settings'
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(false)
@@ -328,41 +329,7 @@ export default function SettingsPage() {
                 {activeTab === 'notifications' && (
                   <div className="space-y-6">
                     <h2 className="text-xl font-semibold text-foreground">Notification Preferences</h2>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                        <div>
-                          <h3 className="font-medium text-foreground">Task Updates</h3>
-                          <p className="text-sm text-muted-foreground">Get notified when tasks you're involved with are updated</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" defaultChecked />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                        <div>
-                          <h3 className="font-medium text-foreground">New Comments</h3>
-                          <p className="text-sm text-muted-foreground">Get notified when someone comments on your tasks</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" defaultChecked />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                        <div>
-                          <h3 className="font-medium text-foreground">Community Activity</h3>
-                          <p className="text-sm text-muted-foreground">Get notified about trending tasks and community updates</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-                    </div>
+                    <NotificationSettings />
                   </div>
                 )}
 

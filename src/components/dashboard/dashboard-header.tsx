@@ -6,6 +6,7 @@ import { User as SupabaseUser } from '@supabase/supabase-js'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
+import { NotificationCenter } from '@/components/notifications/notification-center'
 
 interface DashboardHeaderProps {
   isGuestMode: boolean
@@ -45,7 +46,7 @@ export function DashboardHeader({ isGuestMode, user, taskCount }: DashboardHeade
             <User className="h-6 w-6 text-white" />
           )}
         </div>
-        
+
         <div>
           <h1 className="text-2xl font-bold text-primary-900 dark:text-dark-text">
             {isGuestMode ? 'Guest Mode' : 'Dashboard'}
@@ -74,6 +75,9 @@ export function DashboardHeader({ isGuestMode, user, taskCount }: DashboardHeade
           <Home className="h-4 w-4" />
           <span className="hidden sm:inline">Home</span>
         </button>
+
+        {/* Notification Center */}
+        {!isGuestMode && user && <NotificationCenter />}
 
         {/* Theme Toggle */}
         <button
