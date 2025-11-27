@@ -11,6 +11,7 @@ import Link from 'next/link'
 type Notification = {
     id: string
     type: 'info' | 'success' | 'warning' | 'error' | 'email'
+    category: 'comment' | 'like' | 'deadline' | 'collaboration' | 'task_update' | 'subtask_update' | 'system'
     title: string
     message: string
     read: boolean
@@ -123,7 +124,19 @@ export function NotificationCenter() {
             .eq('id', id)
     }
 
-    const getIcon = (type: string) => {
+    const getIcon = (type: string, category?: string) => {
+        // Priority to category specific icons
+        switch (category) {
+            case 'comment': return <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-full text-blue-600"><Info className="h-4 w-4" /></div>
+            case 'like': return <div className="p-1.5 bg-pink-100 dark:bg-pink-900/30 rounded-full text-pink-600"><CheckCircle className="h-4 w-4" /></div> // Using CheckCircle as placeholder for Heart
+            case 'deadline': return <div className="p-1.5 bg-orange-100 dark:bg-orange-900/30 rounded-full text-orange-600"><AlertTriangle className="h-4 w-4" /></div>
+            case 'collaboration': return <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-full text-purple-600"><Info className="h-4 w-4" /></div>
+            case 'task_update': return <div className="p-1.5 bg-green-100 dark:bg-green-900/30 rounded-full text-green-600"><Check className="h-4 w-4" /></div>
+            case 'subtask_update': return <div className="p-1.5 bg-teal-100 dark:bg-teal-900/30 rounded-full text-teal-600"><Check className="h-4 w-4" /></div>
+            case 'system': return <div className="p-1.5 bg-gray-100 dark:bg-gray-900/30 rounded-full text-gray-600"><Info className="h-4 w-4" /></div>
+        }
+
+        // Fallback to type based icons
         switch (type) {
             case 'success': return <CheckCircle className="h-5 w-5 text-green-500" />
             case 'warning': return <AlertTriangle className="h-5 w-5 text-orange-500" />
@@ -187,7 +200,7 @@ export function NotificationCenter() {
                                         >
                                             <div className="flex gap-3">
                                                 <div className="mt-1 flex-shrink-0">
-                                                    {getIcon(notification.type)}
+                                                    {getIcon(notification.type, notification.category)}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-start justify-between gap-2">

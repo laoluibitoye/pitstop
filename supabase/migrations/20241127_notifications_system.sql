@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('info', 'success', 'warning', 'error', 'email')),
+  category TEXT NOT NULL CHECK (category IN ('comment', 'like', 'deadline', 'collaboration', 'task_update', 'subtask_update', 'system')),
   title TEXT NOT NULL,
   message TEXT NOT NULL,
   read BOOLEAN DEFAULT FALSE,
@@ -13,9 +14,15 @@ CREATE TABLE IF NOT EXISTS notifications (
 -- Create notification_settings table
 CREATE TABLE IF NOT EXISTS notification_settings (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-  email_notifications BOOLEAN DEFAULT TRUE,
-  in_app_notifications BOOLEAN DEFAULT TRUE,
-  types JSONB DEFAULT '{"info": true, "success": true, "warning": true, "error": true}'::jsonb,
+  preferences JSONB DEFAULT '{
+    "comment": { "email": true, "in_app": true },
+    "like": { "email": true, "in_app": true },
+    "deadline": { "email": true, "in_app": true },
+    "collaboration": { "email": true, "in_app": true },
+    "task_update": { "email": true, "in_app": true },
+    "subtask_update": { "email": true, "in_app": true },
+    "system": { "email": true, "in_app": true }
+  }'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -46,7 +53,7 @@ CREATE POLICY "Users can insert their own notification settings"
   ON notification_settings FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
--- Trigger to create default settings for new users (optional but good practice)
+-- Trigger to create default settings for new users
 CREATE OR REPLACE FUNCTION public.handle_new_user_notification_settings()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -56,10 +63,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Hook into auth.users creation (if not already handled by another trigger, otherwise handle manually in app)
--- For now, we'll rely on the app to create settings if they don't exist, or a separate trigger if desired.
--- But let's add a trigger to be safe if we can.
--- Note: You might need to drop this trigger if it conflicts with existing ones or if you prefer app-level creation.
 DROP TRIGGER IF EXISTS on_auth_user_created_settings ON auth.users;
 CREATE TRIGGER on_auth_user_created_settings
   AFTER INSERT ON auth.users
